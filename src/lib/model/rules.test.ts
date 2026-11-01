@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canLink, childOptions, insertBetweenPlan } from './rules';
+import { canLink, childOptions, insertBetweenPlan, passageOptions } from './rules';
 
 describe('rules', () => {
 	it('a question takes answers and sub-questions, not arguments', () => {
@@ -9,7 +9,7 @@ describe('rules', () => {
 
 	it('a position takes branches, arguments and evidence both ways', () => {
 		expect(childOptions('position').map((o) => o.key)).toEqual([
-			'branch', 'argumentFor', 'argumentAgainst', 'evidenceFor', 'evidenceAgainst', 'question'
+			'branch', 'alternative', 'argumentFor', 'argumentAgainst', 'evidenceFor', 'evidenceAgainst', 'question'
 		]);
 	});
 
@@ -34,6 +34,20 @@ describe('rules', () => {
 			middleKind: 'position',
 			lowerRels: ['refines']
 		});
+	});
+
+	it('a document takes blocks only through partOf, not the generic menu', () => {
+		expect(childOptions('document')).toEqual([]);
+		expect(canLink('position', 'partOf', 'document')).toBe(true);
+		expect(canLink('document', 'partOf', 'document')).toBe(false);
+	});
+
+	it('a selected passage can be answered four ways', () => {
+		expect(passageOptions('position').map((o) => `${o.kind}:${o.rel}`)).toEqual([
+			'argument:opposes', 'argument:supports', 'position:alternativeTo', 'question:arisesFrom'
+		]);
+		expect(passageOptions('argument').find((o) => o.rel === 'alternativeTo')?.kind).toBe('argument');
+		expect(passageOptions('question').map((o) => o.rel)).toEqual(['arisesFrom']);
 	});
 
 	it('an answer edge cannot be split', () => {

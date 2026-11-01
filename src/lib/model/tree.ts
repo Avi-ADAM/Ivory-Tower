@@ -17,7 +17,9 @@ export interface TreeItem {
 
 /** Display order of children: answers and branches first, then for, against, the rest. */
 const REL_ORDER: Record<Rel, number> = {
+	partOf: -1,
 	answers: 0,
+	alternativeTo: 1,
 	synthesizes: 1,
 	refines: 2,
 	supports: 3,
@@ -33,7 +35,9 @@ export function childrenIndex(edges: readonly GraphEdge[]): Map<string, GraphEdg
 		list.push(e);
 		idx.set(e.to, list);
 	}
-	for (const list of idx.values()) list.sort((a, b) => REL_ORDER[a.rel] - REL_ORDER[b.rel]);
+	for (const list of idx.values()) {
+		list.sort((a, b) => REL_ORDER[a.rel] - REL_ORDER[b.rel] || (a.ord ?? 0) - (b.ord ?? 0));
+	}
 	return idx;
 }
 

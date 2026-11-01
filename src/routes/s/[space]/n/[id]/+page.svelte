@@ -3,6 +3,8 @@
 	import KindBadge from '$lib/components/KindBadge.svelte';
 	import StatusChips from '$lib/components/StatusChips.svelte';
 	import TreeView from '$lib/components/TreeView.svelte';
+	import DocumentView from '$lib/components/DocumentView.svelte';
+	import Markdown from '$lib/components/Markdown.svelte';
 	import { INQUIRY_STATUSES, STANCE_VALUES } from '$lib/model/types';
 
 	let { data, form } = $props();
@@ -43,6 +45,7 @@
 				<span class="rel rel-{p.rel}">{t(`rel.${p.rel}`)}</span>
 				<KindBadge kind={p.toKind} />
 				{p.toTitle}
+				{#if p.anchor}<q class="muted">{p.anchor.exact.length > 80 ? p.anchor.exact.slice(0, 80) + '…' : p.anchor.exact}</q>{/if}
 				{#if p.stale}<span class="stale" title={t('node.stale')}>⟳ {t('node.stale')}</span>{/if}
 			</a>
 		{/each}
@@ -52,10 +55,10 @@
 <article class="card stack main k-{node.kind}">
 	<div class="row">
 		<KindBadge kind={node.kind} />
-		<StatusChips {node} {status} />
+		{#if node.kind !== 'document'}<StatusChips {node} {status} />{/if}
 	</div>
 	<h1>{node.title}</h1>
-	{#if node.body}<pre class="body">{node.body}</pre>{/if}
+	{#if node.body}<Markdown text={node.body} />{/if}
 	{#if node.source}
 		<p class="small"><strong>{t('node.source')}:</strong>
 			{#if /^https?:\/\//.test(node.source)}<a href={node.source} rel="noopener nofollow" target="_blank" dir="ltr">{node.source}</a>{:else}{node.source}{/if}
@@ -88,6 +91,17 @@
 
 {#if form?.error}<p class="error" role="alert">{t(`error.${form.error}`)}</p>{/if}
 
+{#if node.kind === 'document' && data.doc && data.view !== 'tree'}
+	<DocumentView
+		blocks={data.doc}
+		statuses={data.statuses}
+		{base}
+		signedIn={!!data.user}
+		isAuthor={data.isAuthor}
+		blockKinds={data.blockKinds}
+		currentUserId={data.user?.id ?? null}
+	/>
+{:else}
 <div class="layout">
 	<section class="stack">
 		{#if data.view === 'tree' && data.tree}
@@ -103,6 +117,7 @@
 								<KindBadge kind={it.child.kind} />
 								<a class="ct" href="{base}/n/{it.child.id}">{it.child.title}</a>
 							</div>
+							{#if it.anchor}<q class="small muted quote">{it.anchor.exact.length > 120 ? it.anchor.exact.slice(0, 120) + '…' : it.anchor.exact}</q>{/if}
 							<div class="row small">
 								<StatusChips node={it.child} status={data.statuses[it.child.id]} />
 								<span class="muted">{it.child.authorName}{#if it.child.attributedTo} · {it.child.attributedTo}{/if}</span>
@@ -271,6 +286,7 @@
 		<p class="muted small">{t('status.explain')}</p>
 	</aside>
 </div>
+{/if}
 
 <style>
 	.crumbs a { text-decoration: none; }
@@ -293,6 +309,7 @@
 	.k-argument { --c: var(--argument); }
 	.k-evidence { --c: var(--evidence); }
 	.k-synthesis { --c: var(--synthesis); }
+	.k-document { --c: var(--document); }
 	.rel { font-size: .75rem; font-family: system-ui, sans-serif; }
 	.rel-supports { color: var(--for); font-weight: 700; }
 	.rel-opposes { color: var(--against); font-weight: 700; }
@@ -300,6 +317,7 @@
 	.sub { margin-block-start: 8px; padding-block-start: 8px; border-block-start: 1px dashed var(--line); }
 	.check { display: flex; gap: 8px; align-items: center; color: var(--ink); }
 	.plain { list-style: none; padding: 0; margin: 0; }
+	q { quotes: '«' '»'; }
 	.inq-note { border-inline-start: 3px solid var(--warn); padding-inline-start: 8px; }
 	h2 { font-size: 1.15rem; }
 	h3 { font-size: 1rem; margin: 0; }

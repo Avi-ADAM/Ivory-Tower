@@ -21,6 +21,13 @@ Postgres via PGlite (dev/tests) or `pg` (DATABASE_URL). Sister site of 1lev1.
   (kind, rel, kind) triples live only in `src/lib/model/rules.ts`.
 - **Structural status** (`src/lib/model/status.ts`) is grounded labelling over
   `opposes`; supports never cancel an objection; cycles stay undecided (standing).
+- **Documents** are `document` nodes whose blocks are ordinary nodes linked by
+  ordered `partOf` edges; only the document's author adds/moves blocks. Anyone
+  answers a passage: the edge carries `anchor` = `{exact,prefix,suffix}`
+  (`src/lib/anchor/quote.ts`), located against the block's DOM `textContent`.
+  A lost passage makes the response *orphaned* — shown, never deleted.
+- Bodies are Markdown rendered by `src/lib/text/markdown.ts` only (escapes all
+  user text); never `{@html}` anything else.
 - This is the *opposite* of 1lev1's "silence is consent": never auto-resolve anything here.
 
 ## Conventions

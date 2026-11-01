@@ -34,14 +34,21 @@
 		"noQuestions": "No questions in this space yet.",
 		"newQuestion": "New question",
 		"recent": "Recently added",
-		"responses": "{{count}} responses"
+		"responses": "{{count}} responses",
+		"documents": "Documents",
+		"noDocuments": "No documents yet.",
+		"newDocument": "New document",
+		"blocks": "{{count}} blocks",
+		"docTitle": "Document title",
+		"docIntro": "Introduction (optional)"
 	},
 	"kind": {
 		"question": "Question",
 		"position": "Position",
 		"argument": "Argument",
 		"evidence": "Evidence",
-		"synthesis": "Synthesis"
+		"synthesis": "Synthesis",
+		"document": "Document"
 	},
 	"rel": {
 		"answers": "answers",
@@ -50,7 +57,9 @@
 		"opposes": "against",
 		"premise": "premise of",
 		"synthesizes": "unites",
-		"arisesFrom": "arises from"
+		"arisesFrom": "arises from",
+		"alternativeTo": "alternative to",
+		"partOf": "part of"
 	},
 	"relGroup": {
 		"answers": "Positions",
@@ -59,7 +68,9 @@
 		"supports": "For",
 		"opposes": "Against",
 		"premise": "Premises",
-		"arisesFrom": "Questions raised here"
+		"arisesFrom": "Questions raised here",
+		"alternativeTo": "Alternatives",
+		"partOf": "Blocks"
 	},
 	"status": {
 		"unchallenged": "Not yet challenged",
@@ -114,7 +125,8 @@
 		"source": "Source (link, DOI, citation)",
 		"attributedTo": "Attributed to (optional: Kant, a paper, a school)",
 		"submit": "Add",
-		"signIn": "Sign in to add."
+		"signIn": "Sign in to add.",
+		"alternative": "Alternative (a competing version)"
 	},
 	"link": {
 		"title": "Link an existing node here",
@@ -163,6 +175,36 @@
 		"alreadyLinked": "That link already exists.",
 		"noteRequired": "A reason is required.",
 		"synthesisNeedsTwo": "A synthesis needs at least two positions.",
-		"signIn": "Sign in first."
+		"signIn": "Sign in first.",
+		"badAnchor": "The selected passage was not captured. Select it again."
+	},
+	"passage": {
+		"against": "Against",
+		"for": "For",
+		"alternative": "Alternative",
+		"question": "Question"
+	},
+	"doc": {
+		"empty": "This document is empty. Add its first block.",
+		"selectHint": "Select a passage to answer it: against, for, an alternative, or a question. Every response goes on the map; the document itself does not change.",
+		"addBlock": "Add a block",
+		"blockKind": "Block kind",
+		"markdownHint": "Formatting: **bold**, *italic*, [link](https://…), ## heading, - list, > quote",
+		"include": "Include an existing node",
+		"moveUp": "Up",
+		"moveDown": "Down",
+		"authorOnlyBlocks": "Only the document's author adds blocks. Anyone can answer any passage.",
+		"notes": "Responses",
+		"wholeBlock": "On the whole block",
+		"readOriginal": "Original",
+		"readSideBySide": "Side by side",
+		"alternativeBy": "{{name}}'s alternative",
+		"readAs": "Read this block as:",
+		"orphan": "The passage this response refers to is no longer in the text",
+		"respondTitle": "Respond to a passage",
+		"cancel": "Cancel",
+		"quoted": "Passage:",
+		"open": "Open node",
+		"edit": "Edit"
 	}
 }

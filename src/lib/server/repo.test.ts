@@ -112,4 +112,47 @@ describe('repo', () => {
 		await repo.setStance(db, { userId: alice, nodeId: q, value: null, public: false });
 		expect((await repo.getStances(db, q, alice)).mine).toBeNull();
 	});
+
+	it('a document is an ordered list of blocks that only its author arranges', async () => {
+		const doc = await repo.createNode(db, { spaceId, kind: 'document', title: 'Review: mind and body', userId: alice });
+		const b1 = await repo.createNode(db, { spaceId, kind: 'position', title: 'Mind is not body', body: 'Because **clear** conception.', userId: alice, link: { rel: 'partOf', to: doc } });
+		const b2 = await repo.createNode(db, { spaceId, kind: 'argument', title: 'Interaction is a problem', userId: alice, link: { rel: 'partOf', to: doc } });
+		await expect(
+			repo.createNode(db, { spaceId, kind: 'position', title: 'Bob sneaks in', userId: bob, link: { rel: 'partOf', to: doc } })
+		).rejects.toMatchObject({ code: 'authorOnly' });
+		await expect(repo.linkNodes(db, { spaceId, from: b1, rel: 'partOf', to: doc, userId: bob })).rejects.toMatchObject({ code: 'authorOnly' });
+
+		let { edges } = await repo.loadSubgraph(db, doc);
+		const order = () => edges.filter((e) => e.rel === 'partOf').sort((a, b) => a.ord! - b.ord!).map((e) => e.from);
+		expect(order()).toEqual([b1, b2]);
+
+		const e2 = edges.find((e) => e.from === b2)!;
+		await expect(repo.moveBlock(db, { spaceId, docId: doc, edgeId: e2.id, dir: 'up', userId: bob })).rejects.toMatchObject({ code: 'authorOnly' });
+		await repo.moveBlock(db, { spaceId, docId: doc, edgeId: e2.id, dir: 'up', userId: alice });
+		await repo.moveBlock(db, { spaceId, docId: doc, edgeId: e2.id, dir: 'up', userId: alice }); // already first: no-op
+		({ edges } = await repo.loadSubgraph(db, doc));
+		expect(order()).toEqual([b2, b1]);
+
+		const docs = await repo.listDocuments(db, spaceId);
+		expect(docs.find((d) => d.id === doc)?.blockCount).toBe(2);
+		expect((await repo.rootQuestions(db, spaceId)).some((q) => q.id === doc)).toBe(false);
+	});
+
+	it('anyone answers a passage; the anchor travels with the edge', async () => {
+		const doc = await repo.createNode(db, { spaceId, kind: 'document', title: 'Doc 2', userId: alice });
+		const block = await repo.createNode(db, { spaceId, kind: 'position', title: 'Pineal gland links mind and body', userId: alice, link: { rel: 'partOf', to: doc } });
+		const anchor = { exact: 'Pineal gland', prefix: '', suffix: ' links mind' };
+		const alt = await repo.createNode(db, { spaceId, kind: 'position', title: 'No single organ does', userId: bob, link: { rel: 'alternativeTo', to: block, anchor } });
+		await repo.createNode(db, { spaceId, kind: 'argument', title: 'Lesions elsewhere change the mind', userId: bob, link: { rel: 'opposes', to: block, anchor } });
+
+		const { edges, nodes } = await repo.loadSubgraph(db, doc);
+		expect(nodes.size).toBe(4);
+		const altEdge = edges.find((e) => e.from === alt)!;
+		expect(altEdge).toMatchObject({ rel: 'alternativeTo', anchor });
+		const [parent] = await repo.parentsOf(db, alt);
+		expect(parent.anchor).toEqual(anchor);
+
+		const bodies = await repo.getBodies(db, [block, alt]);
+		expect(Object.keys(bodies).sort()).toEqual([alt, block].sort());
+	});
 });

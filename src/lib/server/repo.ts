@@ -1,6 +1,7 @@
 import type { Db } from './db';
 import { canLink, insertBetweenPlan } from '$lib/model/rules';
 import type { GraphEdge, GraphNode, InquiryStatus, NodeKind, Rel, StanceValue } from '$lib/model/types';
+import type { TextQuote } from '$lib/anchor/quote';
 
 /** A refusal the UI can explain: `code` is an i18n key under `error.`. */
 export class DomainError extends Error {
@@ -108,10 +109,14 @@ export async function getNode(db: Db, spaceId: string, id: string): Promise<Node
 	return row ?? null;
 }
 
-async function nodeKind(db: Db, spaceId: string, id: string): Promise<{ kind: NodeKind; currentRev: number }> {
+async function nodeKind(
+	db: Db,
+	spaceId: string,
+	id: string
+): Promise<{ kind: NodeKind; currentRev: number; createdBy: string }> {
 	if (!isUuid(id)) throw new DomainError('notFound');
-	const [row] = await db.query<{ kind: NodeKind; currentRev: number }>(
-		'select kind, current_rev as "currentRev" from node where id = $1 and space_id = $2',
+	const [row] = await db.query<{ kind: NodeKind; currentRev: number; createdBy: string }>(
+		'select kind, current_rev as "currentRev", created_by as "createdBy" from node where id = $1 and space_id = $2',
 		[id, spaceId]
 	);
 	if (!row) throw new DomainError('notFound');
@@ -126,21 +131,40 @@ export interface NodeInput {
 	source?: string | null;
 	attributedTo?: string | null;
 	userId: string;
-	/** What this node responds to. Required for everything but a root question. */
-	link?: { rel: Rel; to: string };
+	/** What this node responds to — optionally one passage of it. Required for everything but a question or a document. */
+	link?: { rel: Rel; to: string; anchor?: TextQuote | null };
+}
+
+/** The one place edges are written; a `partOf` edge goes to the end of its document. */
+async function insertEdge(
+	db: Db,
+	e: { spaceId: string; rel: Rel; from: string; to: string; toRev: number | null; anchor?: TextQuote | null; userId: string }
+): Promise<string> {
+	const [row] = await db.query<{ id: string }>(
+		`insert into edge (space_id, rel, from_node, to_node, to_rev, anchor, ord, created_by)
+		 values ($1, $2, $3, $4, $5, $6::jsonb,
+		         case when $2 = 'partOf' then
+		           (select coalesce(max(ord), 0) + 1 from edge where to_node = $4 and rel = 'partOf' and superseded_by is null)
+		         end,
+		         $7)
+		 returning id`,
+		[e.spaceId, e.rel, e.from, e.to, e.toRev, e.anchor ? JSON.stringify(e.anchor) : null, e.userId]
+	);
+	return row.id;
 }
 
 export async function createNode(db: Db, p: NodeInput): Promise<string> {
 	const title = p.title.trim();
 	if (!title) throw new DomainError('titleRequired');
 	if (title.length > 300) throw new DomainError('titleTooLong');
-	if (!p.link && p.kind !== 'question') throw new DomainError('needsParent');
+	if (!p.link && p.kind !== 'question' && p.kind !== 'document') throw new DomainError('needsParent');
 
 	return db.transaction(async (tx) => {
 		let parentRev: number | null = null;
 		if (p.link) {
 			const parent = await nodeKind(tx, p.spaceId, p.link.to);
 			if (!canLink(p.kind, p.link.rel, parent.kind)) throw new DomainError('badLink');
+			if (p.link.rel === 'partOf' && parent.createdBy !== p.userId) throw new DomainError('authorOnly');
 			parentRev = parent.currentRev;
 		}
 		const [n] = await tx.query<{ id: string }>(
@@ -152,10 +176,15 @@ export async function createNode(db: Db, p: NodeInput): Promise<string> {
 			[n.id, title, (p.body ?? '').trim(), p.source?.trim() || null, p.userId]
 		);
 		if (p.link) {
-			await tx.query(
-				`insert into edge (space_id, rel, from_node, to_node, to_rev, created_by) values ($1, $2, $3, $4, $5, $6)`,
-				[p.spaceId, p.link.rel, n.id, p.link.to, parentRev, p.userId]
-			);
+			await insertEdge(tx, {
+				spaceId: p.spaceId,
+				rel: p.link.rel,
+				from: n.id,
+				to: p.link.to,
+				toRev: parentRev,
+				anchor: p.link.anchor ?? null,
+				userId: p.userId
+			});
 		}
 		return n.id;
 	});
@@ -214,16 +243,13 @@ export async function linkNodes(
 		const from = await nodeKind(tx, p.spaceId, p.from);
 		const to = await nodeKind(tx, p.spaceId, p.to);
 		if (!canLink(from.kind, p.rel, to.kind)) throw new DomainError('badLink');
+		if (p.rel === 'partOf' && to.createdBy !== p.userId) throw new DomainError('authorOnly');
 		const [dup] = await tx.query(
 			'select 1 from edge where from_node = $1 and to_node = $2 and rel = $3 and superseded_by is null',
 			[p.from, p.to, p.rel]
 		);
 		if (dup) throw new DomainError('alreadyLinked');
-		const [e] = await tx.query<{ id: string }>(
-			`insert into edge (space_id, rel, from_node, to_node, to_rev, created_by) values ($1, $2, $3, $4, $5, $6) returning id`,
-			[p.spaceId, p.rel, p.from, p.to, to.currentRev, p.userId]
-		);
-		return e.id;
+		return insertEdge(tx, { spaceId: p.spaceId, rel: p.rel, from: p.from, to: p.to, toRev: to.currentRev, userId: p.userId });
 	});
 }
 
@@ -273,11 +299,12 @@ export interface ParentLink {
 	toKind: NodeKind;
 	toTitle: string;
 	stale: boolean;
+	anchor: TextQuote | null;
 }
 
 export async function parentsOf(db: Db, nodeId: string): Promise<ParentLink[]> {
 	return db.query<ParentLink>(
-		`select e.id as "edgeId", e.rel, n.id as "toId", n.kind as "toKind", r.title as "toTitle",
+		`select e.id as "edgeId", e.rel, n.id as "toId", n.kind as "toKind", r.title as "toTitle", e.anchor,
 		        (e.to_rev is not null and e.to_rev < n.current_rev) as stale
 		   from edge e
 		   join node n on n.id = e.to_node
@@ -307,12 +334,56 @@ export async function loadSubgraph(
 	if (idList.length === 0) return { nodes: new Map(), edges: [] };
 	const nodes = await db.query<GraphNode>(`select ${nodeCols} ${nodeFrom} where n.id = any($1::uuid[])`, [idList]);
 	const edges = await db.query<GraphEdge>(
-		`select id, rel, from_node as "from", to_node as "to", to_rev as "toRev" from edge
+		`select id, rel, from_node as "from", to_node as "to", to_rev as "toRev", anchor, ord from edge
 		  where superseded_by is null and to_node = any($1::uuid[]) and from_node = any($1::uuid[])
 		  order by created_at`,
 		[idList]
 	);
 	return { nodes: new Map(nodes.map((n) => [n.id, n])), edges };
+}
+
+/** Body and source of the current revision of several nodes (a document's blocks and their alternatives). */
+export async function getBodies(db: Db, ids: string[]): Promise<Record<string, { body: string; source: string | null }>> {
+	if (ids.length === 0) return {};
+	const rows = await db.query<{ id: string; body: string; source: string | null }>(
+		`select n.id, r.body, r.source from node n join node_rev r on r.node_id = n.id and r.rev = n.current_rev
+		  where n.id = any($1::uuid[])`,
+		[ids]
+	);
+	return Object.fromEntries(rows.map((r) => [r.id, { body: r.body, source: r.source }]));
+}
+
+/** Swap a block with its neighbour. Only the document's author arranges it. */
+export async function moveBlock(
+	db: Db,
+	p: { spaceId: string; docId: string; edgeId: string; dir: 'up' | 'down'; userId: string }
+): Promise<void> {
+	await db.transaction(async (tx) => {
+		const doc = await nodeKind(tx, p.spaceId, p.docId);
+		if (doc.kind !== 'document') throw new DomainError('notFound');
+		if (doc.createdBy !== p.userId) throw new DomainError('authorOnly');
+		const blocks = await tx.query<{ id: string; ord: number }>(
+			`select id, ord from edge where to_node = $1 and rel = 'partOf' and superseded_by is null order by ord, created_at`,
+			[p.docId]
+		);
+		const i = blocks.findIndex((b) => b.id === p.edgeId);
+		if (i === -1) throw new DomainError('notFound');
+		const j = p.dir === 'up' ? i - 1 : i + 1;
+		if (j < 0 || j >= blocks.length) return;
+		await tx.query('update edge set ord = $2 where id = $1', [blocks[i].id, blocks[j].ord]);
+		await tx.query('update edge set ord = $2 where id = $1', [blocks[j].id, blocks[i].ord]);
+	});
+}
+
+export async function listDocuments(db: Db, spaceId: string): Promise<(GraphNode & { blockCount: number })[]> {
+	return db.query(
+		`select ${nodeCols},
+		        (select count(*)::int from edge c where c.to_node = n.id and c.rel = 'partOf' and c.superseded_by is null) as "blockCount"
+		   ${nodeFrom}
+		  where n.space_id = $1 and n.kind = 'document'
+		  order by n.created_at desc`,
+		[spaceId]
+	);
 }
 
 /** Questions that respond to nothing: the entry points of a space. */

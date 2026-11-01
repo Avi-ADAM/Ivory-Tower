@@ -3,7 +3,10 @@ import type { Actions, PageServerLoad } from './$types';
 import { getDb } from '$lib/server/db';
 import * as repo from '$lib/server/repo';
 import { attempt, requireUser, str } from '$lib/server/session';
-import { childOptions, insertBetweenPlan } from '$lib/model/rules';
+import { BLOCK_KINDS, childOptions, insertBetweenPlan } from '$lib/model/rules';
+import { parseQuote } from '$lib/anchor/quote';
+import type { GraphEdge, GraphNode } from '$lib/model/types';
+import type { DocBlock, DocResponse } from '$lib/model/doc';
 import { computeStatuses, type NodeStatus } from '$lib/model/status';
 import { buildTree, childrenIndex } from '$lib/model/tree';
 import { isInquiryStatus, isNodeKind, isRel, isStanceValue, RELS, type Rel } from '$lib/model/types';
@@ -24,7 +27,7 @@ export const load: PageServerLoad = async ({ params, parent, url, locals }) => {
 
 	// Direct responses, grouped by relation, each with how it may be split.
 	const direct = childrenIndex(edges).get(node.id) ?? [];
-	const groups: { rel: Rel; items: { edgeId: string; child: NonNullable<ReturnType<typeof nodes.get>>; stale: boolean; insert: ReturnType<typeof insertBetweenPlan> }[] }[] = [];
+	const groups: { rel: Rel; items: { edgeId: string; anchor: GraphEdge["anchor"]; child: NonNullable<ReturnType<typeof nodes.get>>; stale: boolean; insert: ReturnType<typeof insertBetweenPlan> }[] }[] = [];
 	for (const rel of RELS) {
 		const items = direct
 			.filter((e) => e.rel === rel && nodes.has(e.from))
@@ -32,12 +35,43 @@ export const load: PageServerLoad = async ({ params, parent, url, locals }) => {
 				const child = nodes.get(e.from)!;
 				return {
 					edgeId: e.id,
+					anchor: e.anchor ?? null,
 					child,
 					stale: e.toRev !== null && e.toRev < node.currentRev,
 					insert: insertBetweenPlan(e.rel, child.kind, node.kind)
 				};
 			});
 		if (items.length) groups.push({ rel, items });
+	}
+
+	// A document: its blocks in order, and around each block everything that answers it.
+	let doc: DocBlock[] | null = null;
+	if (node.kind === 'document') {
+		const idx = childrenIndex(edges);
+		const blocks = (idx.get(node.id) ?? []).filter((e) => e.rel === 'partOf' && nodes.has(e.from));
+		const responses = (target: GraphNode): DocResponse[] =>
+			(idx.get(target.id) ?? [])
+				.filter((e) => e.rel !== 'partOf' && nodes.has(e.from))
+				.map((e) => ({
+					edgeId: e.id,
+					rel: e.rel,
+					anchor: e.anchor ?? null,
+					stale: e.toRev !== null && e.toRev < target.currentRev,
+					child: nodes.get(e.from)!
+				}));
+		const shaped = blocks.map((e) => {
+			const block = nodes.get(e.from)!;
+			const resp = responses(block);
+			return { edgeId: e.id, block, responses: resp, alternatives: resp.filter((r) => r.rel === 'alternativeTo').map((r) => ({ node: r.child, responses: responses(r.child) })) };
+		});
+		const ids = shaped.flatMap((b) => [b.block.id, ...b.alternatives.map((a) => a.node.id)]);
+		const bodies = await repo.getBodies(db, ids);
+		doc = shaped.map((b) => ({
+			...b,
+			body: bodies[b.block.id]?.body ?? '',
+			source: bodies[b.block.id]?.source ?? null,
+			alternatives: b.alternatives.map((a) => ({ ...a, body: bodies[a.node.id]?.body ?? '' }))
+		}));
 	}
 
 	const view = url.searchParams.get('view') === 'tree' ? 'tree' : 'node';
@@ -50,9 +84,13 @@ export const load: PageServerLoad = async ({ params, parent, url, locals }) => {
 		options: childOptions(node.kind),
 		tree: view === 'tree' ? buildTree(node.id, nodes, edges) : null,
 		view,
-		isAuthor: locals.user?.id === node.createdBy
+		isAuthor: locals.user?.id === node.createdBy,
+		doc,
+		blockKinds: BLOCK_KINDS.filter((k) => k !== 'synthesis')
 	};
 };
+
+
 
 async function ctx(locals: App.Locals, params: { space: string; id: string }) {
 	const db = await getDb();
@@ -83,6 +121,64 @@ export const actions: Actions = {
 		);
 		if (!r.ok) return r.failure;
 		redirect(303, `${base}/n/${params.id}#n-${r.value}`);
+	},
+
+	/** Answer one passage of a node (from a document or a node page). */
+	respond: async ({ request, locals, params, url }) => {
+		const denied = requireUser(locals);
+		if (denied) return denied;
+		const { db, space, userId, base } = await ctx(locals, params);
+		const form = await request.formData();
+		const [kind, rel] = str(form, 'what').split(':');
+		if (!isNodeKind(kind) || !isRel(rel) || rel === 'partOf') return { error: 'badLink' };
+		const anchor = parseQuote(str(form, 'anchor'));
+		if (!anchor) return { error: 'badAnchor' };
+		const target = str(form, 'target');
+		const r = await attempt(() =>
+			repo.createNode(db, {
+				spaceId: space.id,
+				kind,
+				title: str(form, 'title'),
+				body: str(form, 'body'),
+				userId,
+				link: { rel, to: target, anchor }
+			})
+		);
+		if (!r.ok) return r.failure;
+		redirect(303, `${base}/n/${params.id}${url.search}#note-${r.value}`);
+	},
+
+	addBlock: async ({ request, locals, params }) => {
+		const denied = requireUser(locals);
+		if (denied) return denied;
+		const { db, space, userId, base } = await ctx(locals, params);
+		const form = await request.formData();
+		const kind = str(form, 'kind');
+		if (!isNodeKind(kind)) return { error: 'badLink' };
+		const r = await attempt(() =>
+			repo.createNode(db, {
+				spaceId: space.id,
+				kind,
+				title: str(form, 'title'),
+				body: str(form, 'body'),
+				source: str(form, 'source'),
+				attributedTo: str(form, 'attributedTo'),
+				userId,
+				link: { rel: 'partOf', to: params.id }
+			})
+		);
+		if (!r.ok) return r.failure;
+		redirect(303, `${base}/n/${params.id}#block-${r.value}`);
+	},
+
+	moveBlock: async ({ request, locals, params }) => {
+		const denied = requireUser(locals);
+		if (denied) return denied;
+		const { db, space, userId } = await ctx(locals, params);
+		const form = await request.formData();
+		const dir = str(form, 'dir') === 'up' ? 'up' : 'down';
+		const r = await attempt(() => repo.moveBlock(db, { spaceId: space.id, docId: params.id, edgeId: str(form, 'edgeId'), dir, userId }));
+		return r.ok ? { done: 'move' } : r.failure;
 	},
 
 	link: async ({ request, locals, params }) => {

@@ -50,6 +50,31 @@
 	</section>
 
 	<aside class="stack">
+		<h2>{t('space.documents')}</h2>
+		{#if data.documents.length === 0}<p class="muted small">{t('space.noDocuments')}</p>{/if}
+		{#each data.documents as d (d.id)}
+			<a class="card dl" href="{base}/n/{d.id}">
+				<strong>{d.title}</strong>
+				<span class="muted small">{t('space.blocks', { count: d.blockCount })} · {d.authorName}</span>
+			</a>
+		{/each}
+		{#if data.user}
+			<details class="card">
+				<summary><strong>{t('space.newDocument')}</strong></summary>
+				<form method="POST" action="?/addDocument" class="stack form">
+					<div>
+						<label for="dt">{t('space.docTitle')}</label>
+						<input id="dt" name="title" required maxlength="300" />
+					</div>
+					<div>
+						<label for="db">{t('space.docIntro')}</label>
+						<textarea id="db" name="body"></textarea>
+					</div>
+					<button type="submit">{t('add.submit')}</button>
+				</form>
+			</details>
+		{/if}
+
 		<h2>{t('space.recent')}</h2>
 		<ul class="recent">
 			{#each data.recent as n (n.id)}
@@ -66,6 +91,8 @@
 	.q { display: flex; flex-direction: column; gap: 4px; text-decoration: none; border-inline-start: 4px solid var(--question); }
 	.q:hover { border-color: var(--accent); }
 	.form { margin-block-start: 12px; }
+	.dl { display: flex; flex-direction: column; gap: 4px; text-decoration: none; border-inline-start: 4px solid var(--accent); }
+	.dl:hover { border-color: var(--ink); }
 	.recent { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
 	.recent a { text-decoration: none; }
 	.crumbs a { text-decoration: none; }

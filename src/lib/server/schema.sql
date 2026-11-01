@@ -22,7 +22,7 @@ create table if not exists space (
 create table if not exists node (
   id uuid primary key default gen_random_uuid(),
   space_id uuid not null references space on delete cascade,
-  kind text not null check (kind in ('question','position','argument','evidence','synthesis')),
+  kind text not null,
   current_rev int not null default 1,
   inquiry_status text check (inquiry_status in ('exploring','concluded','deadEnd','parked')),
   inquiry_note text,
@@ -48,7 +48,7 @@ create table if not exists node_rev (
 create table if not exists edge (
   id uuid primary key default gen_random_uuid(),
   space_id uuid not null references space on delete cascade,
-  rel text not null check (rel in ('answers','refines','supports','opposes','premise','synthesizes','arisesFrom')),
+  rel text not null,
   from_node uuid not null references node on delete cascade,   -- the child: the one responding
   to_node uuid not null references node on delete cascade,     -- the parent: what it responds to
   to_rev int,                                -- the parent's revision at the time of linking
@@ -71,3 +71,19 @@ create table if not exists stance (
 
 -- A 1lev1 member, when signed in through the shared .1lev1.com session.
 alter table app_user add column if not exists lev_user_id text unique;
+
+-- v2: documents and anchored passages ─────────────────────────────────────
+-- The kind/rel vocabularies are (re)declared here so an existing database
+-- picks up new values on boot; src/lib/model/types.ts is the source of truth.
+alter table node drop constraint if exists node_kind_check;
+alter table node add constraint node_kind_check
+  check (kind in ('question','position','argument','evidence','synthesis','document'));
+alter table edge drop constraint if exists edge_rel_check;
+alter table edge add constraint edge_rel_check
+  check (rel in ('answers','refines','supports','opposes','premise','synthesizes','arisesFrom','alternativeTo','partOf'));
+
+-- The passage of the parent this edge responds to: {exact, prefix, suffix} (W3C TextQuoteSelector).
+alter table edge add column if not exists anchor jsonb;
+-- Order of a block inside its document (rel = 'partOf').
+alter table edge add column if not exists ord double precision;
+create index if not exists edge_doc_idx on edge (to_node, ord) where rel = 'partOf' and superseded_by is null;

@@ -34,14 +34,21 @@
 		"noQuestions": "עוד אין שאלות במרחב הזה.",
 		"newQuestion": "שאלה חדשה",
 		"recent": "נוסף לאחרונה",
-		"responses": "{{count}} תגובות"
+		"responses": "{{count}} תגובות",
+		"documents": "מסמכים",
+		"noDocuments": "עוד אין מסמכים.",
+		"newDocument": "מסמך חדש",
+		"blocks": "{{count}} בלוקים",
+		"docTitle": "שם המסמך",
+		"docIntro": "מבוא (לא חובה)"
 	},
 	"kind": {
 		"question": "שאלה",
 		"position": "עמדה",
 		"argument": "טיעון",
 		"evidence": "ראיה",
-		"synthesis": "סינתזה"
+		"synthesis": "סינתזה",
+		"document": "מסמך"
 	},
 	"rel": {
 		"answers": "עונה על",
@@ -50,7 +57,9 @@
 		"opposes": "נגד",
 		"premise": "הנחה של",
 		"synthesizes": "מאחד את",
-		"arisesFrom": "עולה מתוך"
+		"arisesFrom": "עולה מתוך",
+		"alternativeTo": "חלופה ל",
+		"partOf": "חלק מ"
 	},
 	"relGroup": {
 		"answers": "עמדות",
@@ -59,7 +68,9 @@
 		"supports": "בעד",
 		"opposes": "נגד",
 		"premise": "הנחות",
-		"arisesFrom": "שאלות שעולות מכאן"
+		"arisesFrom": "שאלות שעולות מכאן",
+		"alternativeTo": "חלופות",
+		"partOf": "בלוקים"
 	},
 	"status": {
 		"unchallenged": "לא נוסה להפריך",
@@ -114,7 +125,8 @@
 		"source": "מקור (קישור, DOI, ציטוט)",
 		"attributedTo": "מיוחס ל (לא חובה: קאנט, מאמר, אסכולה)",
 		"submit": "הוספה",
-		"signIn": "כדי להוסיף צריך להיכנס."
+		"signIn": "כדי להוסיף צריך להיכנס.",
+		"alternative": "חלופה (גרסה מתחרה)"
 	},
 	"link": {
 		"title": "לקשר צומת קיים לכאן",
@@ -163,6 +175,36 @@
 		"alreadyLinked": "הקשר הזה כבר קיים.",
 		"noteRequired": "צריך נימוק.",
 		"synthesisNeedsTwo": "סינתזה צריכה לפחות שתי עמדות.",
-		"signIn": "צריך להיכנס קודם."
+		"signIn": "צריך להיכנס קודם.",
+		"badAnchor": "הקטע שסימנתם לא נקלט. סמנו אותו שוב."
+	},
+	"passage": {
+		"against": "נגד",
+		"for": "בעד",
+		"alternative": "חלופה",
+		"question": "שאלה"
+	},
+	"doc": {
+		"empty": "המסמך ריק. הוסיפו את הבלוק הראשון.",
+		"selectHint": "סמנו קטע בטקסט כדי להגיב עליו: נגד, בעד, חלופה או שאלה. כל תגובה נשמרת על המפה, והמסמך עצמו לא משתנה.",
+		"addBlock": "הוספת בלוק",
+		"blockKind": "סוג הבלוק",
+		"markdownHint": "אפשר לעצב: **מודגש**, *נטוי*, [קישור](https://…), ## כותרת, - רשימה, > ציטוט",
+		"include": "לשלב במסמך צומת קיים",
+		"moveUp": "למעלה",
+		"moveDown": "למטה",
+		"authorOnlyBlocks": "רק מי שכתב את המסמך מוסיף בלוקים. כל אחד יכול להגיב על כל קטע.",
+		"notes": "תגובות",
+		"wholeBlock": "על הבלוק כולו",
+		"readOriginal": "מקור",
+		"readSideBySide": "זה לצד זה",
+		"alternativeBy": "חלופה של {{name}}",
+		"readAs": "לקרוא את הבלוק:",
+		"orphan": "הקטע שהתגובה מתייחסת אליו כבר לא מופיע בטקסט",
+		"respondTitle": "תגובה לקטע",
+		"cancel": "ביטול",
+		"quoted": "הקטע:",
+		"open": "לדף הצומת",
+		"edit": "עריכה"
 	}
 }

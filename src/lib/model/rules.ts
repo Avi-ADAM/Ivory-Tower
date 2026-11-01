@@ -12,8 +12,13 @@ const ALLOWED: Record<Rel, { from: readonly NodeKind[]; to: readonly NodeKind[] 
 	opposes: { from: ['argument', 'evidence'], to: ['position', 'argument', 'evidence', 'synthesis'] },
 	premise: { from: ['argument'], to: ['argument'] },
 	synthesizes: { from: ['synthesis'], to: ['position', 'synthesis'] },
-	arisesFrom: { from: ['question'], to: ['question', 'position', 'argument', 'evidence', 'synthesis'] }
+	arisesFrom: { from: ['question'], to: ['question', 'position', 'argument', 'evidence', 'synthesis'] },
+	alternativeTo: { from: ['position', 'argument'], to: ['position', 'argument', 'synthesis'] },
+	partOf: { from: ['question', 'position', 'argument', 'evidence', 'synthesis'], to: ['document'] }
 };
+
+/** Kinds a document block may have. */
+export const BLOCK_KINDS: readonly NodeKind[] = ALLOWED.partOf.from;
 
 export function canLink(fromKind: NodeKind, rel: Rel, toKind: NodeKind): boolean {
 	const r = ALLOWED[rel];
@@ -32,6 +37,7 @@ export function childOptions(parent: NodeKind): ChildOption[] {
 	const all: ChildOption[] = [
 		{ kind: 'position', rel: 'answers', key: 'answer' },
 		{ kind: 'position', rel: 'refines', key: 'branch' },
+		{ kind: 'position', rel: 'alternativeTo', key: 'alternative' },
 		{ kind: 'argument', rel: 'supports', key: 'argumentFor' },
 		{ kind: 'argument', rel: 'opposes', key: 'argumentAgainst' },
 		{ kind: 'evidence', rel: 'supports', key: 'evidenceFor' },
@@ -40,6 +46,20 @@ export function childOptions(parent: NodeKind): ChildOption[] {
 		{ kind: 'question', rel: 'arisesFrom', key: 'question' }
 	];
 	return all.filter((o) => canLink(o.kind, o.rel, parent));
+}
+
+/**
+ * What a reader can do with a selected passage of a node: answer it against,
+ * for, with an alternative version, or with a question.
+ */
+export function passageOptions(target: NodeKind): ChildOption[] {
+	const all: ChildOption[] = [
+		{ kind: 'argument', rel: 'opposes', key: 'against' },
+		{ kind: 'argument', rel: 'supports', key: 'for' },
+		{ kind: target === 'argument' ? 'argument' : 'position', rel: 'alternativeTo', key: 'alternative' },
+		{ kind: 'question', rel: 'arisesFrom', key: 'question' }
+	];
+	return all.filter((o) => canLink(o.kind, o.rel, target));
 }
 
 /**

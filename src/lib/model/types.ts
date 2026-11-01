@@ -1,3 +1,5 @@
+import type { TextQuote } from '$lib/anchor/quote';
+
 /**
  * The vocabulary of the map. See docs/MODEL.md.
  *
@@ -6,7 +8,7 @@
  * its question. "Children of N" are therefore the edges whose `to` is N.
  */
 
-export const NODE_KINDS = ['question', 'position', 'argument', 'evidence', 'synthesis'] as const;
+export const NODE_KINDS = ['question', 'position', 'argument', 'evidence', 'synthesis', 'document'] as const;
 export type NodeKind = (typeof NODE_KINDS)[number];
 
 export const RELS = [
@@ -16,7 +18,9 @@ export const RELS = [
 	'opposes', // argument|evidence → claim        (against)
 	'premise', // argument → argument              (an assumption the argument rests on)
 	'synthesizes', // synthesis → position|synthesis (a merge that keeps both sides)
-	'arisesFrom' // question → any node            (a question this node raises)
+	'arisesFrom', // question → any node           (a question this node raises)
+	'alternativeTo', // position|argument → claim (a competing version of the same point)
+	'partOf' // claim|question → document          (a block of a document, ordered by `ord`)
 ] as const;
 export type Rel = (typeof RELS)[number];
 
@@ -45,6 +49,10 @@ export interface GraphEdge {
 	to: string;
 	/** The revision of `to` this edge responded to. */
 	toRev: number | null;
+	/** The passage of `to` this edge responds to, when it responds to a passage. */
+	anchor?: TextQuote | null;
+	/** Position of a block in its document (`partOf` only). */
+	ord?: number | null;
 }
 
 export function isNodeKind(v: unknown): v is NodeKind {
