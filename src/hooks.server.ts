@@ -10,11 +10,15 @@ const lev = levConfig();
 export const handle: Handle = async ({ event, resolve }) => {
 	const db = await getDb();
 	event.locals.user = null;
+	event.locals.lev = null;
 	if (lev) {
 		// Signed in through 1lev1: the shared .1lev1.com session is the only one.
 		const jwt = event.cookies.get(LEV_JWT_COOKIE);
 		const member = jwt ? await resolveLevUser(lev, jwt) : null;
-		if (member) event.locals.user = await upsertLevUser(db, member.levId, member.name);
+		if (jwt && member) {
+			event.locals.user = await upsertLevUser(db, member.levId, member.name);
+			event.locals.lev = { jwt, levUserId: member.levId };
+		}
 	} else {
 		const uid = event.cookies.get(USER_COOKIE);
 		event.locals.user = uid ? await getUser(db, uid) : null;

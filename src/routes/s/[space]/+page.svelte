@@ -10,7 +10,8 @@
 <svelte:head><title>{data.space.title} · {t('app.name')}</title></svelte:head>
 
 <nav class="muted small crumbs"><a href="/">{t('nav.home')}</a> ›</nav>
-<h1>{data.space.title}</h1>
+<h1>{data.space.title}{#if data.space.visibility === 'members'} <span class="lock" title={t('spaces.membersBadge')}>🔒</span>{/if}</h1>
+{#if data.space.ownerRikmaName}<p class="held small">{t('space.heldBy', { name: data.space.ownerRikmaName })}{#if data.space.visibility === 'members'} · {t('spaces.membersBadge')}{/if}</p>{/if}
 {#if data.space.description}<p class="muted desc">{data.space.description}</p>{/if}
 
 <div class="grid">
@@ -86,6 +87,8 @@
 
 <style>
 	.desc { max-width: 70ch; }
+	.held { color: var(--synthesis); margin: -6px 0 8px; }
+	.lock { font-size: .7em; }
 	.grid { display: grid; gap: 24px; grid-template-columns: 1fr; }
 	@media (min-width: 760px) { .grid { grid-template-columns: 2fr 1fr; } }
 	.q { display: flex; flex-direction: column; gap: 4px; text-decoration: none; border-inline-start: 4px solid var(--question); }

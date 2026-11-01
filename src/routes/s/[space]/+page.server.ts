@@ -1,7 +1,8 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getDb } from '$lib/server/db';
-import { createNode, getSpace, listDocuments, recentNodes, rootQuestions } from '$lib/server/repo';
+import { readableSpace } from '$lib/server/access';
+import { createNode, listDocuments, recentNodes, rootQuestions } from '$lib/server/repo';
 import { attempt, requireUser, str } from '$lib/server/session';
 
 export const load: PageServerLoad = async ({ parent }) => {
@@ -19,7 +20,7 @@ export const actions: Actions = {
 		const denied = requireUser(locals);
 		if (denied) return denied;
 		const db = await getDb();
-		const space = (await getSpace(db, params.space))!;
+		const space = await readableSpace(locals, params.space);
 		const form = await request.formData();
 		const r = await attempt(() =>
 			createNode(db, { spaceId: space.id, kind: 'document', title: str(form, 'title'), body: str(form, 'body'), userId: locals.user!.id })
@@ -32,7 +33,7 @@ export const actions: Actions = {
 		const denied = requireUser(locals);
 		if (denied) return denied;
 		const db = await getDb();
-		const space = (await getSpace(db, params.space))!;
+		const space = await readableSpace(locals, params.space);
 		const form = await request.formData();
 		const r = await attempt(() =>
 			createNode(db, {

@@ -87,3 +87,25 @@ alter table edge add column if not exists anchor jsonb;
 -- Order of a block inside its document (rel = 'partOf').
 alter table edge add column if not exists ord double precision;
 create index if not exists edge_doc_idx on edge (to_node, ord) where rel = 'partOf' and superseded_by is null;
+
+-- v3: the bridge to 1lev1 rikmas ─────────────────────────────────────────
+-- Work a node led to in a rikma: an open mission (or its proposal) or a process.
+-- external_* are 1lev1 ids; Ivory Tower never writes to 1lev1 except as the member.
+create table if not exists rikma_link (
+  id uuid primary key default gen_random_uuid(),
+  space_id uuid not null references space on delete cascade,
+  node_id uuid not null references node on delete cascade,
+  rikma_id text not null,
+  rikma_name text not null,
+  kind text not null check (kind in ('mission','process')),
+  external_type text not null,
+  external_id text not null,
+  mission_id text,
+  title text not null,
+  created_by uuid not null references app_user,
+  created_at timestamptz not null default now()
+);
+create index if not exists rikma_link_node_idx on rikma_link (node_id);
+alter table space add column if not exists owner_rikma_name text;
+alter table space drop constraint if exists space_visibility_check;
+alter table space add constraint space_visibility_check check (visibility in ('public','members'));

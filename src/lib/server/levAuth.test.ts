@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { levConfig, levLoginHref, resolveLevUser } from './levAuth';
 
-const cfg = { strapiUrl: 'https://api.example', gateKey: 'g', loginUrl: 'https://1lev1.com/login' };
+const cfg = { strapiUrl: 'https://api.example', gateKey: 'g', loginUrl: 'https://1lev1.com/login', levUrl: 'https://1lev1.com' };
 const res = (status: number, body?: unknown) =>
 	({ ok: status < 300, status, json: async () => body }) as Response;
 

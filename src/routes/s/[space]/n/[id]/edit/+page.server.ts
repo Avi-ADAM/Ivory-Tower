@@ -1,7 +1,8 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getDb } from '$lib/server/db';
-import { getNode, getSpace, listRevisions, reviseNode } from '$lib/server/repo';
+import { readableSpace } from '$lib/server/access';
+import { getNode, listRevisions, reviseNode } from '$lib/server/repo';
 import { attempt, requireUser, str } from '$lib/server/session';
 
 export const load: PageServerLoad = async ({ params, parent, locals }) => {
@@ -17,8 +18,7 @@ export const actions: Actions = {
 		const denied = requireUser(locals);
 		if (denied) return denied;
 		const db = await getDb();
-		const space = await getSpace(db, params.space);
-		if (!space) error(404, { message: 'Space not found' });
+		const space = await readableSpace(locals, params.space);
 		const form = await request.formData();
 		const r = await attempt(() =>
 			reviseNode(db, {

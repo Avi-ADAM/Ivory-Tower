@@ -41,38 +41,69 @@ export async function getUser(db: Db, id: string): Promise<{ id: string; name: s
 
 // ── spaces ───────────────────────────────────────────────────────────────
 
+export type Visibility = 'public' | 'members';
+
 export interface Space {
 	id: string;
 	slug: string;
 	title: string;
 	description: string;
 	license: string;
+	visibility: Visibility;
 	ownerRikmaId: string | null;
+	ownerRikmaName: string | null;
 	nodeCount?: number;
 }
 
-const spaceCols = `s.id, s.slug, s.title, s.description, s.license, s.owner_rikma_id as "ownerRikmaId"`;
+const spaceCols = `s.id, s.slug, s.title, s.description, s.license, s.visibility,
+  s.owner_rikma_id as "ownerRikmaId", s.owner_rikma_name as "ownerRikmaName"`;
+
+/**
+ * Who may read a space. A public space: everyone. A members space: only the
+ * members of the rikma that holds it — `myRikmaIds` comes from 1lev1, asked
+ * with the reader's own token.
+ */
+export function canRead(space: Pick<Space, 'visibility' | 'ownerRikmaId'>, myRikmaIds: readonly string[]): boolean {
+	if (space.visibility === 'public') return true;
+	return !!space.ownerRikmaId && myRikmaIds.includes(space.ownerRikmaId);
+}
 
 export async function createSpace(
 	db: Db,
-	p: { slug: string; title: string; description?: string; userId: string }
+	p: {
+		slug: string;
+		title: string;
+		description?: string;
+		userId: string;
+		/** The rikma that holds the space; the caller has checked membership with 1lev1. */
+		owner?: { id: string; name: string } | null;
+		visibility?: Visibility;
+	}
 ): Promise<Space> {
+	const visibility = p.visibility ?? 'public';
+	if (visibility !== 'public' && visibility !== 'members') throw new DomainError('badVisibility');
+	if (visibility === 'members' && !p.owner) throw new DomainError('membersNeedRikma');
 	const slug = p.slug.trim().toLowerCase();
 	if (!/^[a-z0-9][a-z0-9-]{1,62}$/.test(slug)) throw new DomainError('badSlug');
 	if (!p.title.trim()) throw new DomainError('titleRequired');
 	const [exists] = await db.query('select 1 from space where slug = $1', [slug]);
 	if (exists) throw new DomainError('slugTaken');
 	const [row] = await db.query<Space>(
-		`insert into space as s (slug, title, description, created_by) values ($1, $2, $3, $4) returning ${spaceCols}`,
-		[slug, p.title.trim(), (p.description ?? '').trim(), p.userId]
+		`insert into space as s (slug, title, description, created_by, owner_rikma_id, owner_rikma_name, visibility)
+		 values ($1, $2, $3, $4, $5, $6, $7) returning ${spaceCols}`,
+		[slug, p.title.trim(), (p.description ?? '').trim(), p.userId, p.owner?.id ?? null, p.owner?.name ?? null, visibility]
 	);
 	return row;
 }
 
-export async function listSpaces(db: Db): Promise<Space[]> {
+/** Public spaces, plus the members-only spaces of the reader's rikmas. */
+export async function listSpaces(db: Db, myRikmaIds: readonly string[] = []): Promise<Space[]> {
 	return db.query<Space>(
 		`select ${spaceCols}, (select count(*)::int from node n where n.space_id = s.id) as "nodeCount"
-		   from space s where s.visibility = 'public' order by s.created_at desc`
+		   from space s
+		  where s.visibility = 'public' or (s.visibility = 'members' and s.owner_rikma_id = any($1::text[]))
+		  order by s.created_at desc`,
+		[[...myRikmaIds]]
 	);
 }
 
@@ -466,6 +497,56 @@ export async function synthesize(
 		}
 		return id;
 	});
+}
+
+// ── the rikma bridge ─────────────────────────────────────────────────────
+
+export interface RikmaLink {
+	id: string;
+	rikmaId: string;
+	rikmaName: string;
+	kind: 'mission' | 'process';
+	externalType: string;
+	externalId: string;
+	missionId: string | null;
+	title: string;
+	authorName: string;
+	createdAt: string;
+}
+
+/** Record work a node led to in a rikma — after 1lev1 accepted it, never before. */
+export async function addRikmaLink(
+	db: Db,
+	p: {
+		spaceId: string;
+		nodeId: string;
+		rikma: { id: string; name: string };
+		kind: 'mission' | 'process';
+		externalType: string;
+		externalId: string;
+		missionId?: string | null;
+		title: string;
+		userId: string;
+	}
+): Promise<string> {
+	await nodeKind(db, p.spaceId, p.nodeId);
+	const [row] = await db.query<{ id: string }>(
+		`insert into rikma_link (space_id, node_id, rikma_id, rikma_name, kind, external_type, external_id, mission_id, title, created_by)
+		 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning id`,
+		[p.spaceId, p.nodeId, p.rikma.id, p.rikma.name, p.kind, p.externalType, p.externalId, p.missionId ?? null, p.title, p.userId]
+	);
+	return row.id;
+}
+
+export async function listRikmaLinks(db: Db, nodeId: string): Promise<RikmaLink[]> {
+	return db.query<RikmaLink>(
+		`select l.id, l.rikma_id as "rikmaId", l.rikma_name as "rikmaName", l.kind, l.external_type as "externalType",
+		        l.external_id as "externalId", l.mission_id as "missionId", l.title, u.name as "authorName",
+		        l.created_at as "createdAt"
+		   from rikma_link l join app_user u on u.id = l.created_by
+		  where l.node_id = $1 order by l.created_at desc`,
+		[nodeId]
+	);
 }
 
 // ── stances ──────────────────────────────────────────────────────────────

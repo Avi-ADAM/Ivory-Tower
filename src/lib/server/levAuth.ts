@@ -15,6 +15,8 @@ export interface LevConfig {
 	strapiUrl: string;
 	gateKey: string;
 	loginUrl: string;
+	/** 1lev1 itself (its /api/send and /api/action), for the rikma bridge. */
+	levUrl: string;
 }
 
 export function levConfig(env: Record<string, string | undefined> = process.env): LevConfig | null {
@@ -23,7 +25,8 @@ export function levConfig(env: Record<string, string | undefined> = process.env)
 	return {
 		strapiUrl,
 		gateKey: env.STRAPI_GATE_KEY ?? '',
-		loginUrl: env.LEV_LOGIN_URL || 'https://1lev1.com/login'
+		loginUrl: env.LEV_LOGIN_URL || 'https://1lev1.com/login',
+		levUrl: (env.LEV_URL || 'https://1lev1.com').replace(/\/+$/, '')
 	};
 }
 

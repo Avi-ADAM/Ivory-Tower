@@ -38,4 +38,10 @@ Postgres via PGlite (dev/tests) or `pg` (DATABASE_URL). Sister site of 1lev1.
   where `code` is a key under `error.` in the dictionaries.
 - Auth: with `STRAPI_URL` set, the session is 1lev1's shared `.1lev1.com` `jwt`
   cookie (see `src/lib/server/levAuth.ts`); otherwise dev display-name login.
+- Rikma bridge (`src/lib/server/levBridge.ts`): calls 1lev1 ONLY as the member,
+  with their own jwt, through ordinary 1lev1 endpoints — never add a shared
+  secret or a service principal. Every space read/write goes through
+  `readableSpace()` (`src/lib/server/access.ts`); a members space is a 404 to
+  anyone 1lev1 does not list as a member. Record a `rikma_link` only after 1lev1
+  accepted the request; nothing here decides anything in a rikma.
 - Data model and roadmap: `docs/MODEL.md`.

@@ -1,6 +1,10 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getDb } from '$lib/server/db';
+import { bridgeEnabled, myRikmas, readableSpace } from '$lib/server/access';
+import { levConfig } from '$lib/server/levAuth';
+import { describeForRikma, openMission, requireMembership, rikmaUrl, startProcess } from '$lib/server/levBridge';
+import { translator } from '$lib/i18n';
 import * as repo from '$lib/server/repo';
 import { attempt, requireUser, str } from '$lib/server/session';
 import { BLOCK_KINDS, childOptions, insertBetweenPlan } from '$lib/model/rules';
@@ -75,7 +79,18 @@ export const load: PageServerLoad = async ({ params, parent, url, locals }) => {
 	}
 
 	const view = url.searchParams.get('view') === 'tree' ? 'tree' : 'node';
+	// The rikma bridge: what this node already led to, and where it could lead.
+	const cfg = levConfig();
+	const links = (await repo.listRikmaLinks(db, node.id)).map((l) => ({ ...l, url: cfg ? rikmaUrl(cfg, l.rikmaId) : null }));
+	const bridge = {
+		enabled: bridgeEnabled() && !!locals.lev && node.kind !== 'document',
+		rikmas: node.kind !== 'document' ? await myRikmas(locals) : [],
+		defaultRikma: space.ownerRikmaId
+	};
+
 	return {
+		links,
+		bridge,
 		node,
 		parents,
 		groups,
@@ -94,8 +109,7 @@ export const load: PageServerLoad = async ({ params, parent, url, locals }) => {
 
 async function ctx(locals: App.Locals, params: { space: string; id: string }) {
 	const db = await getDb();
-	const space = await repo.getSpace(db, params.space);
-	if (!space) error(404, { message: 'Space not found' });
+	const space = await readableSpace(locals, params.space);
 	return { db, space, userId: locals.user!.id, base: `/s/${space.slug}` };
 }
 
@@ -179,6 +193,50 @@ export const actions: Actions = {
 		const dir = str(form, 'dir') === 'up' ? 'up' : 'down';
 		const r = await attempt(() => repo.moveBlock(db, { spaceId: space.id, docId: params.id, edgeId: str(form, 'edgeId'), dir, userId }));
 		return r.ok ? { done: 'move' } : r.failure;
+	},
+
+	/**
+	 * Carry a node into a rikma as an open mission or a process. 1lev1 does the
+	 * work, as the member; this side only records the link once 1lev1 said yes.
+	 */
+	toRikma: async ({ request, locals, params, url }) => {
+		const denied = requireUser(locals);
+		if (denied) return denied;
+		const cfg = levConfig();
+		if (!cfg || !locals.lev) return { error: 'levSignIn' };
+		const { db, space, userId, base } = await ctx(locals, params);
+		const node = await repo.getNode(db, space.id, params.id);
+		if (!node || node.kind === 'document') error(404, { message: 'Node not found' });
+		const form = await request.formData();
+		const kind = str(form, 'kind') === 'process' ? 'process' : 'mission';
+		const name = (str(form, 'name').trim() || node.title).slice(0, 200);
+		const t = translator(locals.locale);
+		const r = await attempt(async () => {
+			const rikma = await requireMembership(cfg, locals.lev!, str(form, 'rikma'));
+			const d = describeForRikma({
+				title: node.title,
+				body: node.body,
+				note: str(form, 'note'),
+				url: `${url.origin}${base}/n/${node.id}`,
+				linkLabel: t('bridge.backLink')
+			});
+			const made =
+				kind === 'mission'
+					? await openMission(cfg, locals.lev!, { rikmaId: rikma.id, name, descripHtml: d.html })
+					: await startProcess(cfg, locals.lev!, { rikmaId: rikma.id, name, description: d.text });
+			return repo.addRikmaLink(db, {
+				spaceId: space.id,
+				nodeId: node.id,
+				rikma,
+				kind,
+				externalType: made.externalType,
+				externalId: made.externalId,
+				missionId: 'missionId' in made ? (made.missionId as string | null) : null,
+				title: name,
+				userId
+			});
+		});
+		return r.ok ? { done: 'rikma' } : r.failure;
 	},
 
 	link: async ({ request, locals, params }) => {

@@ -27,7 +27,13 @@
 		"spaceTitle": "Space name",
 		"description": "What is being explored here",
 		"submit": "Open the space",
-		"signInToCreate": "Sign in to open a space."
+		"signInToCreate": "Sign in to open a space.",
+		"rikma": "Rikma holding the space (optional)",
+		"noRikma": "No rikma",
+		"visibility": "Who can see it",
+		"public": "Everyone",
+		"members": "The rikma's members only",
+		"membersBadge": "Rikma members only"
 	},
 	"space": {
 		"questions": "Open questions",
@@ -40,7 +46,8 @@
 		"newDocument": "New document",
 		"blocks": "{{count}} blocks",
 		"docTitle": "Document title",
-		"docIntro": "Introduction (optional)"
+		"docIntro": "Introduction (optional)",
+		"heldBy": "A space of the rikma {{name}}"
 	},
 	"kind": {
 		"question": "Question",
@@ -176,7 +183,14 @@
 		"noteRequired": "A reason is required.",
 		"synthesisNeedsTwo": "A synthesis needs at least two positions.",
 		"signIn": "Sign in first.",
-		"badAnchor": "The selected passage was not captured. Select it again."
+		"badAnchor": "The selected passage was not captured. Select it again.",
+		"levSignIn": "Sign in through 1lev1 to work with a rikma.",
+		"levUnavailable": "1lev1 is not reachable right now. Try again in a moment.",
+		"levForbidden": "1lev1 did not allow this. Your session may have expired; sign in again.",
+		"levRefused": "The rikma did not accept the request.",
+		"notRikmaMember": "You are not a member of that rikma.",
+		"badVisibility": "Unknown visibility.",
+		"membersNeedRikma": "A members-only space needs a rikma to hold it."
 	},
 	"passage": {
 		"against": "Against",
@@ -206,5 +220,25 @@
 		"quoted": "Passage:",
 		"open": "Open node",
 		"edit": "Edit"
+	},
+	"bridge": {
+		"title": "Into rikma work",
+		"lead": "When a branch reaches something that needs doing, open it as a mission or a process in one of your 1lev1 rikmas. In a rikma with several members it is a proposal, decided by that rikma's own consent rules. Nothing is decided here.",
+		"rikma": "Rikma",
+		"kind": "Open as",
+		"mission": "Open mission",
+		"process": "Process",
+		"name": "Name",
+		"note": "A note to the rikma (optional)",
+		"submit": "Open in the rikma",
+		"noRikmas": "You are not a member of any 1lev1 rikma.",
+		"links": "Led to rikma work",
+		"missionMade": "Mission",
+		"missionProposed": "Mission proposal, awaiting the rikma's consent",
+		"processMade": "Process",
+		"by": "by {{name}}",
+		"open": "Open the rikma in 1lev1",
+		"done": "Opened in the rikma.",
+		"backLink": "The full discussion in Ivory Tower"
 	}
 }

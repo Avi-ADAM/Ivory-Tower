@@ -155,4 +155,26 @@ describe('repo', () => {
 		const bodies = await repo.getBodies(db, [block, alt]);
 		expect(Object.keys(bodies).sort()).toEqual([alt, block].sort());
 	});
+
+	it('a members space is listed and readable only for its rikma', async () => {
+		const owner = { id: '77', name: 'Lab' };
+		await expect(repo.createSpace(db, { slug: 'closed-x', title: 'x', userId: alice, visibility: 'members' })).rejects.toMatchObject({ code: 'membersNeedRikma' });
+		const closed = await repo.createSpace(db, { slug: 'closed', title: 'Closed', userId: alice, owner, visibility: 'members' });
+		expect(closed).toMatchObject({ visibility: 'members', ownerRikmaId: '77', ownerRikmaName: 'Lab' });
+		expect((await repo.listSpaces(db, [])).some((x) => x.slug === 'closed')).toBe(false);
+		expect((await repo.listSpaces(db, ['77'])).some((x) => x.slug === 'closed')).toBe(true);
+		expect(repo.canRead(closed, [])).toBe(false);
+		expect(repo.canRead(closed, ['77'])).toBe(true);
+		expect(repo.canRead({ visibility: 'public', ownerRikmaId: '77' }, [])).toBe(true);
+	});
+
+	it('records the rikma work a node led to', async () => {
+		const q = await repo.createNode(db, { spaceId, kind: 'question', title: 'Q-link', userId: alice });
+		await repo.addRikmaLink(db, {
+			spaceId, nodeId: q, rikma: { id: '7', name: 'Lab' }, kind: 'mission',
+			externalType: 'pendm', externalId: '99', missionId: '3', title: 'Run it', userId: alice
+		});
+		const [l] = await repo.listRikmaLinks(db, q);
+		expect(l).toMatchObject({ rikmaId: '7', rikmaName: 'Lab', kind: 'mission', externalType: 'pendm', externalId: '99', authorName: 'Alice' });
+	});
 });

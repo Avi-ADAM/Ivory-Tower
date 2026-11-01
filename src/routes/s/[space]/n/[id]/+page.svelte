@@ -257,6 +257,58 @@
 			</section>
 		{/if}
 
+		{#if data.links.length}
+			<section class="card stack rikma-links">
+				<h3>{t('bridge.links')}</h3>
+				<ul class="plain small">
+					{#each data.links as l (l.id)}
+						<li>
+							<strong>{l.kind === 'process' ? t('bridge.processMade') : l.externalType === 'pendm' ? t('bridge.missionProposed') : t('bridge.missionMade')}:</strong>
+							{l.title}
+							<span class="muted">· {l.rikmaName} · {t('bridge.by', { name: l.authorName })}</span>
+							{#if l.url}<a href={l.url} target="_blank" rel="noopener">{t('bridge.open')} ↗</a>{/if}
+						</li>
+					{/each}
+				</ul>
+			</section>
+		{/if}
+
+		{#if data.bridge.enabled}
+			<details class="card stack" open={form?.done === 'rikma'}>
+				<summary><strong>{t('bridge.title')}</strong></summary>
+				{#if data.bridge.rikmas.length === 0}
+					<p class="muted small">{t('bridge.noRikmas')}</p>
+				{:else}
+					<p class="muted small">{t('bridge.lead')}</p>
+					{#if form?.done === 'rikma'}<p class="ok small" role="status">{t('bridge.done')}</p>{/if}
+					<form method="POST" action="?/toRikma" class="stack">
+						<div>
+							<label for="br">{t('bridge.rikma')}</label>
+							<select id="br" name="rikma">
+								{#each data.bridge.rikmas as r (r.id)}<option value={r.id} selected={r.id === data.bridge.defaultRikma}>{r.name}</option>{/each}
+							</select>
+						</div>
+						<div>
+							<label for="bk2">{t('bridge.kind')}</label>
+							<select id="bk2" name="kind">
+								<option value="mission">{t('bridge.mission')}</option>
+								<option value="process">{t('bridge.process')}</option>
+							</select>
+						</div>
+						<div>
+							<label for="bn">{t('bridge.name')}</label>
+							<input id="bn" name="name" value={node.title} maxlength="200" />
+						</div>
+						<div>
+							<label for="bnote">{t('bridge.note')}</label>
+							<textarea id="bnote" name="note"></textarea>
+						</div>
+						<button type="submit">{t('bridge.submit')}</button>
+					</form>
+				{/if}
+			</details>
+		{/if}
+
 		{#if node.kind !== 'question'}
 			<section class="card stack">
 				<h3>{t('inquiry.label')}</h3>
@@ -318,6 +370,9 @@
 	.check { display: flex; gap: 8px; align-items: center; color: var(--ink); }
 	.plain { list-style: none; padding: 0; margin: 0; }
 	q { quotes: '«' '»'; }
+	.ok { color: var(--for); font-weight: 600; }
+	.rikma-links { border-inline-start: 4px solid var(--synthesis); }
+	.rikma-links li + li { margin-block-start: 6px; }
 	.inq-note { border-inline-start: 3px solid var(--warn); padding-inline-start: 8px; }
 	h2 { font-size: 1.15rem; }
 	h3 { font-size: 1rem; margin: 0; }
