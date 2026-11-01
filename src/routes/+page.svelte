@@ -4,6 +4,7 @@
 	const i18n = useI18n();
 	const t = (k: string, p?: Record<string, string | number>) => i18n.t(k, p);
 	let rikma = $state('');
+	let visibility = $state('public');
 </script>
 
 <section class="hero stack">
@@ -21,7 +22,7 @@
 		{#each data.spaces as s (s.id)}
 			<a class="card space" href="/s/{s.slug}">
 				<strong>{s.title}{#if s.visibility === 'members'} <span class="lock" title={t('spaces.membersBadge')}>🔒</span>{/if}</strong>
-				{#if s.ownerRikmaName}<span class="small held">{t('space.heldBy', { name: s.ownerRikmaName })}</span>{/if}
+				{#if s.ownerRikmaName}<span class="small held">{t('space.heldBy', { name: s.ownerRikmaName })}{#if s.visibility === 'public' && s.writePolicy === 'members'} · {t('spaces.writeMembersBadge')}{/if}</span>{/if}
 				{#if s.description}<span class="muted">{s.description}</span>{/if}
 				<span class="muted small">{t('spaces.nodes', { count: s.nodeCount ?? 0 })}</span>
 			</a>
@@ -55,9 +56,16 @@
 					{#if rikma}
 						<fieldset class="vis">
 							<legend>{t('spaces.visibility')}</legend>
-							<label class="opt"><input type="radio" name="visibility" value="public" checked /> {t('spaces.public')}</label>
-							<label class="opt"><input type="radio" name="visibility" value="members" /> {t('spaces.members')}</label>
+							<label class="opt"><input type="radio" name="visibility" value="public" bind:group={visibility} /> {t('spaces.public')}</label>
+							<label class="opt"><input type="radio" name="visibility" value="members" bind:group={visibility} /> {t('spaces.members')}</label>
 						</fieldset>
+						{#if visibility === 'public'}
+							<fieldset class="vis">
+								<legend>{t('spaces.writePolicy')}</legend>
+								<label class="opt"><input type="radio" name="writePolicy" value="anyone" checked /> {t('spaces.writeAnyone')}</label>
+								<label class="opt"><input type="radio" name="writePolicy" value="members" /> {t('spaces.writeMembers')}</label>
+							</fieldset>
+						{/if}
 					{/if}
 				{/if}
 				{#if form?.error}<p class="error">{t(`error.${form.error}`)}</p>{/if}

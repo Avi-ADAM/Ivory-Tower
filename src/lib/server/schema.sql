@@ -109,3 +109,10 @@ create index if not exists rikma_link_node_idx on rikma_link (node_id);
 alter table space add column if not exists owner_rikma_name text;
 alter table space drop constraint if exists space_visibility_check;
 alter table space add constraint space_visibility_check check (visibility in ('public','members'));
+
+-- v4: who may contribute to a space held by a rikma ─────────────────────
+-- 'anyone' (every reader) or 'members' (members of the holding rikma only).
+-- A members-visibility space is members-write by construction.
+alter table space add column if not exists write_policy text not null default 'anyone';
+alter table space drop constraint if exists space_write_policy_check;
+alter table space add constraint space_write_policy_check check (write_policy in ('anyone','members'));

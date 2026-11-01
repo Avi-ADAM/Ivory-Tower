@@ -96,7 +96,7 @@
 		blocks={data.doc}
 		statuses={data.statuses}
 		{base}
-		signedIn={!!data.user}
+		signedIn={data.canWrite}
 		isAuthor={data.isAuthor}
 		blockKinds={data.blockKinds}
 		currentUserId={data.user?.id ?? null}
@@ -122,7 +122,7 @@
 								<StatusChips node={it.child} status={data.statuses[it.child.id]} />
 								<span class="muted">{it.child.authorName}{#if it.child.attributedTo} · {it.child.attributedTo}{/if}</span>
 								{#if it.stale}<span class="stale" title={t('node.stale')}>⟳</span>{/if}
-								{#if it.insert && data.user}
+								{#if it.insert && data.canWrite}
 									<button class="ghost chip" type="button" onclick={() => (insertOpen = insertOpen === it.edgeId ? null : it.edgeId)}>
 										↧ {t('insert.title')}
 									</button>
@@ -155,7 +155,7 @@
 			{/each}
 		{/if}
 
-		{#if node.kind === 'question' && positions.length >= 2 && data.user}
+		{#if node.kind === 'question' && positions.length >= 2 && data.canWrite}
 			<details class="card">
 				<summary><strong>{t('synth.title')}</strong></summary>
 				<form method="POST" action="?/synth" class="stack sub">
@@ -183,6 +183,8 @@
 			{#if !data.user}
 				<p class="muted">{t('add.signIn')}</p>
 				<a class="btn" href="/login?back={encodeURIComponent(`${base}/n/${node.id}`)}">{t('nav.signIn')}</a>
+			{:else if !data.canWrite}
+				<p class="muted small">{t('space.readOnly', { name: data.space.ownerRikmaName ?? '' })}</p>
 			{:else if data.options.length}
 				<form method="POST" action="?/add" class="stack">
 					<div>

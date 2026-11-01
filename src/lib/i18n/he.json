@@ -33,7 +33,11 @@
 		"visibility": "מי רואה",
 		"public": "כולם",
 		"members": "רק חברי הרקמה",
-		"membersBadge": "רק לחברי הרקמה"
+		"membersBadge": "רק לחברי הרקמה",
+		"writePolicy": "מי מגיב",
+		"writeAnyone": "כל מי שרואה",
+		"writeMembers": "רק חברי הרקמה",
+		"writeMembersBadge": "רק חברי הרקמה מגיבים"
 	},
 	"space": {
 		"questions": "שאלות פתוחות",
@@ -47,7 +51,8 @@
 		"blocks": "{{count}} בלוקים",
 		"docTitle": "שם המסמך",
 		"docIntro": "מבוא (לא חובה)",
-		"heldBy": "מרחב של הרקמה {{name}}"
+		"heldBy": "מרחב של הרקמה {{name}}",
+		"readOnly": "רק חברי הרקמה {{name}} מגיבים במרחב הזה. אפשר לקרוא הכל ולסמן עמדה אישית."
 	},
 	"kind": {
 		"question": "שאלה",

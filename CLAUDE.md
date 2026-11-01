@@ -42,6 +42,8 @@ Postgres via PGlite (dev/tests) or `pg` (DATABASE_URL). Sister site of 1lev1.
   with their own jwt, through ordinary 1lev1 endpoints — never add a shared
   secret or a service principal. Every space read/write goes through
   `readableSpace()` (`src/lib/server/access.ts`); a members space is a 404 to
-  anyone 1lev1 does not list as a member. Record a `rikma_link` only after 1lev1
+  anyone 1lev1 does not list as a member. Every WRITE goes through
+  `writableSpace()` (members-write spaces: `space.write_policy`); a personal
+  stance is not a write. Record a `rikma_link` only after 1lev1
   accepted the request; nothing here decides anything in a rikma.
 - Data model and roadmap: `docs/MODEL.md`.

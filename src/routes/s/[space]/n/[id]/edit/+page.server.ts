@@ -1,7 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getDb } from '$lib/server/db';
-import { readableSpace } from '$lib/server/access';
+import { writableSpace } from '$lib/server/access';
 import { getNode, listRevisions, reviseNode } from '$lib/server/repo';
 import { attempt, requireUser, str } from '$lib/server/session';
 
@@ -18,7 +18,7 @@ export const actions: Actions = {
 		const denied = requireUser(locals);
 		if (denied) return denied;
 		const db = await getDb();
-		const space = await readableSpace(locals, params.space);
+		const space = await writableSpace(locals, params.space);
 		const form = await request.formData();
 		const r = await attempt(() =>
 			reviseNode(db, {

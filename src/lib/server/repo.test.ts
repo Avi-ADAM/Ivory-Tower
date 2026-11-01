@@ -177,4 +177,24 @@ describe('repo', () => {
 		const [l] = await repo.listRikmaLinks(db, q);
 		expect(l).toMatchObject({ rikmaId: '7', rikmaName: 'Lab', kind: 'mission', externalType: 'pendm', externalId: '99', authorName: 'Alice' });
 	});
+
+	it('a rikma can publish a space everyone reads but only its members write', async () => {
+		const owner = { id: '88', name: 'Group' };
+		await expect(repo.createSpace(db, { slug: 'pub-x', title: 'x', userId: alice, writePolicy: 'members' })).rejects.toMatchObject({ code: 'membersNeedRikma' });
+		const pub = await repo.createSpace(db, { slug: 'pub-members', title: 'P', userId: alice, owner, writePolicy: 'members' });
+		expect(pub).toMatchObject({ visibility: 'public', writePolicy: 'members' });
+		expect(repo.canRead(pub, [])).toBe(true);
+		expect(repo.canWrite(pub, [])).toBe(false);
+		expect(repo.canWrite(pub, ['88'])).toBe(true);
+
+		const open = await repo.createSpace(db, { slug: 'pub-open', title: 'O', userId: alice, owner });
+		expect(open.writePolicy).toBe('anyone');
+		expect(repo.canWrite(open, [])).toBe(true);
+
+		// members visibility is members-write by construction, whatever was asked
+		const closed = await repo.createSpace(db, { slug: 'closed-2', title: 'C', userId: alice, owner, visibility: 'members', writePolicy: 'anyone' });
+		expect(closed.writePolicy).toBe('members');
+		expect(repo.membersOnlyWrite(closed)).toBe(true);
+		expect(repo.canWrite(closed, [])).toBe(false);
+	});
 });

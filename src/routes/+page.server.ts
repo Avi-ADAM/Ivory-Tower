@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getDb } from '$lib/server/db';
-import { createSpace, listSpaces, type Visibility } from '$lib/server/repo';
+import { createSpace, listSpaces, type Visibility, type WritePolicy } from '$lib/server/repo';
 import { attempt, requireUser, str } from '$lib/server/session';
 import { bridgeEnabled, myRikmas } from '$lib/server/access';
 import { requireMembership } from '$lib/server/levBridge';
@@ -23,6 +23,7 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const rikmaId = str(form, 'rikma');
 		const visibility: Visibility = str(form, 'visibility') === 'members' ? 'members' : 'public';
+		const writePolicy: WritePolicy = str(form, 'writePolicy') === 'members' ? 'members' : 'anyone';
 		const r = await attempt(async () => {
 			const cfg = levConfig();
 			// A rikma may hold the space only if 1lev1 says the creator is its member.
@@ -33,7 +34,8 @@ export const actions: Actions = {
 				description: str(form, 'description'),
 				userId: locals.user!.id,
 				owner,
-				visibility
+				visibility,
+				writePolicy
 			});
 		});
 		if (!r.ok) return r.failure;

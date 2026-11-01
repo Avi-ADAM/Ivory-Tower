@@ -11,7 +11,7 @@
 
 <nav class="muted small crumbs"><a href="/">{t('nav.home')}</a> ›</nav>
 <h1>{data.space.title}{#if data.space.visibility === 'members'} <span class="lock" title={t('spaces.membersBadge')}>🔒</span>{/if}</h1>
-{#if data.space.ownerRikmaName}<p class="held small">{t('space.heldBy', { name: data.space.ownerRikmaName })}{#if data.space.visibility === 'members'} · {t('spaces.membersBadge')}{/if}</p>{/if}
+{#if data.space.ownerRikmaName}<p class="held small">{t('space.heldBy', { name: data.space.ownerRikmaName })}{#if data.space.visibility === 'members'} · {t('spaces.membersBadge')}{:else if data.space.writePolicy === 'members'} · {t('spaces.writeMembersBadge')}{/if}</p>{/if}
 {#if data.space.description}<p class="muted desc">{data.space.description}</p>{/if}
 
 <div class="grid">
@@ -27,7 +27,7 @@
 
 		<details class="card" open={data.roots.length === 0}>
 			<summary><strong>{t('space.newQuestion')}</strong></summary>
-			{#if data.user}
+			{#if data.canWrite}
 				<form method="POST" action="?/addQuestion" class="stack form">
 					<div>
 						<label for="qt">{t('add.claim')}</label>
@@ -44,6 +44,8 @@
 					{#if form?.error}<p class="error">{t(`error.${form.error}`)}</p>{/if}
 					<button type="submit">{t('add.submit')}</button>
 				</form>
+			{:else if data.user}
+				<p class="muted">{t('space.readOnly', { name: data.space.ownerRikmaName ?? '' })}</p>
 			{:else}
 				<p class="muted">{t('add.signIn')}</p>
 			{/if}
@@ -59,7 +61,7 @@
 				<span class="muted small">{t('space.blocks', { count: d.blockCount })} · {d.authorName}</span>
 			</a>
 		{/each}
-		{#if data.user}
+		{#if data.canWrite}
 			<details class="card">
 				<summary><strong>{t('space.newDocument')}</strong></summary>
 				<form method="POST" action="?/addDocument" class="stack form">

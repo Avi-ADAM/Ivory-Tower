@@ -42,6 +42,7 @@ export async function getUser(db: Db, id: string): Promise<{ id: string; name: s
 // ── spaces ───────────────────────────────────────────────────────────────
 
 export type Visibility = 'public' | 'members';
+export type WritePolicy = 'anyone' | 'members';
 
 export interface Space {
 	id: string;
@@ -50,12 +51,13 @@ export interface Space {
 	description: string;
 	license: string;
 	visibility: Visibility;
+	writePolicy: WritePolicy;
 	ownerRikmaId: string | null;
 	ownerRikmaName: string | null;
 	nodeCount?: number;
 }
 
-const spaceCols = `s.id, s.slug, s.title, s.description, s.license, s.visibility,
+const spaceCols = `s.id, s.slug, s.title, s.description, s.license, s.visibility, s.write_policy as "writePolicy",
   s.owner_rikma_id as "ownerRikmaId", s.owner_rikma_name as "ownerRikmaName"`;
 
 /**
@@ -65,6 +67,27 @@ const spaceCols = `s.id, s.slug, s.title, s.description, s.license, s.visibility
  */
 export function canRead(space: Pick<Space, 'visibility' | 'ownerRikmaId'>, myRikmaIds: readonly string[]): boolean {
 	if (space.visibility === 'public') return true;
+	return !!space.ownerRikmaId && myRikmaIds.includes(space.ownerRikmaId);
+}
+
+/**
+ * Whether the rikma's members only contribute here. A members-visibility space
+ * is members-write by construction (only members can read it at all).
+ */
+export function membersOnlyWrite(space: Pick<Space, 'visibility' | 'writePolicy'>): boolean {
+	return space.visibility === 'members' || space.writePolicy === 'members';
+}
+
+/**
+ * Who may contribute — add, respond, revise, arrange, carry into a rikma. A
+ * personal stance is not a contribution and is open to every reader.
+ */
+export function canWrite(
+	space: Pick<Space, 'visibility' | 'writePolicy' | 'ownerRikmaId'>,
+	myRikmaIds: readonly string[]
+): boolean {
+	if (!canRead(space, myRikmaIds)) return false;
+	if (!membersOnlyWrite(space)) return true;
 	return !!space.ownerRikmaId && myRikmaIds.includes(space.ownerRikmaId);
 }
 
@@ -78,20 +101,23 @@ export async function createSpace(
 		/** The rikma that holds the space; the caller has checked membership with 1lev1. */
 		owner?: { id: string; name: string } | null;
 		visibility?: Visibility;
+		writePolicy?: WritePolicy;
 	}
 ): Promise<Space> {
 	const visibility = p.visibility ?? 'public';
+	const writePolicy = visibility === 'members' ? 'members' : (p.writePolicy ?? 'anyone');
 	if (visibility !== 'public' && visibility !== 'members') throw new DomainError('badVisibility');
-	if (visibility === 'members' && !p.owner) throw new DomainError('membersNeedRikma');
+	if (writePolicy !== 'anyone' && writePolicy !== 'members') throw new DomainError('badVisibility');
+	if ((visibility === 'members' || writePolicy === 'members') && !p.owner) throw new DomainError('membersNeedRikma');
 	const slug = p.slug.trim().toLowerCase();
 	if (!/^[a-z0-9][a-z0-9-]{1,62}$/.test(slug)) throw new DomainError('badSlug');
 	if (!p.title.trim()) throw new DomainError('titleRequired');
 	const [exists] = await db.query('select 1 from space where slug = $1', [slug]);
 	if (exists) throw new DomainError('slugTaken');
 	const [row] = await db.query<Space>(
-		`insert into space as s (slug, title, description, created_by, owner_rikma_id, owner_rikma_name, visibility)
-		 values ($1, $2, $3, $4, $5, $6, $7) returning ${spaceCols}`,
-		[slug, p.title.trim(), (p.description ?? '').trim(), p.userId, p.owner?.id ?? null, p.owner?.name ?? null, visibility]
+		`insert into space as s (slug, title, description, created_by, owner_rikma_id, owner_rikma_name, visibility, write_policy)
+		 values ($1, $2, $3, $4, $5, $6, $7, $8) returning ${spaceCols}`,
+		[slug, p.title.trim(), (p.description ?? '').trim(), p.userId, p.owner?.id ?? null, p.owner?.name ?? null, visibility, writePolicy]
 	);
 	return row;
 }

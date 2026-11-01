@@ -1,7 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getDb } from '$lib/server/db';
-import { bridgeEnabled, myRikmas, readableSpace } from '$lib/server/access';
+import { bridgeEnabled, myRikmas, readableSpace, writableSpace } from '$lib/server/access';
 import { levConfig } from '$lib/server/levAuth';
 import { describeForRikma, openMission, requireMembership, rikmaUrl, startProcess } from '$lib/server/levBridge';
 import { translator } from '$lib/i18n';
@@ -16,7 +16,7 @@ import { buildTree, childrenIndex } from '$lib/model/tree';
 import { isInquiryStatus, isNodeKind, isRel, isStanceValue, RELS, type Rel } from '$lib/model/types';
 
 export const load: PageServerLoad = async ({ params, parent, url, locals }) => {
-	const { space } = await parent();
+	const { space, canWrite } = await parent();
 	const db = await getDb();
 	const node = await repo.getNode(db, space.id, params.id);
 	if (!node) error(404, { message: 'Node not found' });
@@ -83,7 +83,7 @@ export const load: PageServerLoad = async ({ params, parent, url, locals }) => {
 	const cfg = levConfig();
 	const links = (await repo.listRikmaLinks(db, node.id)).map((l) => ({ ...l, url: cfg ? rikmaUrl(cfg, l.rikmaId) : null }));
 	const bridge = {
-		enabled: bridgeEnabled() && !!locals.lev && node.kind !== 'document',
+		enabled: bridgeEnabled() && !!locals.lev && canWrite && node.kind !== 'document',
 		rikmas: node.kind !== 'document' ? await myRikmas(locals) : [],
 		defaultRikma: space.ownerRikmaId
 	};
@@ -99,7 +99,8 @@ export const load: PageServerLoad = async ({ params, parent, url, locals }) => {
 		options: childOptions(node.kind),
 		tree: view === 'tree' ? buildTree(node.id, nodes, edges) : null,
 		view,
-		isAuthor: locals.user?.id === node.createdBy,
+		// An author who left the rikma of a members-write space reads like everyone else.
+		isAuthor: canWrite && locals.user?.id === node.createdBy,
 		doc,
 		blockKinds: BLOCK_KINDS.filter((k) => k !== 'synthesis')
 	};
@@ -107,9 +108,10 @@ export const load: PageServerLoad = async ({ params, parent, url, locals }) => {
 
 
 
-async function ctx(locals: App.Locals, params: { space: string; id: string }) {
+/** Every action's space, checked for contributing — except a stance, which any reader may hold. */
+async function ctx(locals: App.Locals, params: { space: string; id: string }, opts: { write: boolean } = { write: true }) {
 	const db = await getDb();
-	const space = await readableSpace(locals, params.space);
+	const space = opts.write ? await writableSpace(locals, params.space) : await readableSpace(locals, params.space);
 	return { db, space, userId: locals.user!.id, base: `/s/${space.slug}` };
 }
 
@@ -296,7 +298,7 @@ export const actions: Actions = {
 	stance: async ({ request, locals, params }) => {
 		const denied = requireUser(locals);
 		if (denied) return denied;
-		const { db, userId } = await ctx(locals, params);
+		const { db, userId } = await ctx(locals, params, { write: false });
 		const form = await request.formData();
 		const value = str(form, 'value');
 		await repo.setStance(db, {

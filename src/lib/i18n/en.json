@@ -33,7 +33,11 @@
 		"visibility": "Who can see it",
 		"public": "Everyone",
 		"members": "The rikma's members only",
-		"membersBadge": "Rikma members only"
+		"membersBadge": "Rikma members only",
+		"writePolicy": "Who can respond",
+		"writeAnyone": "Anyone who can see it",
+		"writeMembers": "The rikma's members only",
+		"writeMembersBadge": "Only rikma members respond"
 	},
 	"space": {
 		"questions": "Open questions",
@@ -47,7 +51,8 @@
 		"blocks": "{{count}} blocks",
 		"docTitle": "Document title",
 		"docIntro": "Introduction (optional)",
-		"heldBy": "A space of the rikma {{name}}"
+		"heldBy": "A space of the rikma {{name}}",
+		"readOnly": "Only members of the rikma {{name}} respond in this space. You can read everything and mark your own stance."
 	},
 	"kind": {
 		"question": "Question",

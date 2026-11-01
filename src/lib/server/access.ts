@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { getDb } from './db';
-import { canRead, getSpace, type Space } from './repo';
+import { canRead, canWrite, getSpace, membersOnlyWrite, type Space } from './repo';
 import { levConfig } from './levAuth';
 import { listMyRikmas, type Rikma } from './levBridge';
 
@@ -31,6 +31,26 @@ export async function readableSpace(locals: App.Locals, slug: string): Promise<S
 	if (space.visibility !== 'public') {
 		const ids = (await myRikmas(locals)).map((r) => r.id);
 		if (!canRead(space, ids)) error(404, { message: 'Space not found' });
+	}
+	return space;
+}
+
+/** Whether this reader may contribute to the space (see `canWrite`). */
+export async function mayWrite(locals: App.Locals, space: Space): Promise<boolean> {
+	if (!locals.user) return false;
+	if (!membersOnlyWrite(space)) return true;
+	return canWrite(space, (await myRikmas(locals)).map((r) => r.id));
+}
+
+/**
+ * The space, if this reader may contribute to it. Every write action goes
+ * through here; the forms are hidden from non-members, so reaching the refusal
+ * means a stale page or a forged request.
+ */
+export async function writableSpace(locals: App.Locals, slug: string): Promise<Space> {
+	const space = await readableSpace(locals, slug);
+	if (!(await mayWrite(locals, space))) {
+		error(403, { message: 'Only members of the rikma that holds this space contribute to it' });
 	}
 	return space;
 }
