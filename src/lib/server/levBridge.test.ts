@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { clearRikmaCache, describeForRikma, listMyRikmas, openMission, requireMembership, startProcess } from './levBridge';
+import { clearRikmaCache, describeForRikma, fetchWorkStatus, listMyRikmas, openMission, requireMembership, startProcess, workUrl } from './levBridge';
 
 const cfg = { strapiUrl: 'https://api.x', gateKey: '', loginUrl: 'https://lev/login', levUrl: 'https://lev' };
 const s = { jwt: 'tok', levUserId: '42' };
@@ -59,5 +59,44 @@ describe('levBridge', () => {
 		const d = describeForRikma({ title: '<b>X</b>', body: 'a\nb', url: 'https://t/s/x/n/1', linkLabel: 'back' });
 		expect(d.html).toBe('<p>&lt;b&gt;X&lt;/b&gt;</p><p>a<br>b</p><p><a href="https://t/s/x/n/1">back</a></p>');
 		expect(d.text).toContain('back: https://t/s/x/n/1');
+	});
+
+	it('asks ivoryWorkStatus for one rikma and reads states, following a matured pendm', async () => {
+		const f = vi.fn(async () =>
+			res(200, { data: { project: { data: { id: '7', attributes: {
+				pendms: { data: [
+					{ id: 99, attributes: { archived: false, open_mission: { data: null } } },
+					{ id: 98, attributes: { archived: true, open_mission: { data: { id: 5, attributes: { archived: false, lifecycle: null, mesimabetahaliches: { data: [] } } } } } },
+					{ id: 97, attributes: { archived: true, open_mission: { data: null } } }
+				] },
+				open_missions: { data: [{ id: 6, attributes: { archived: false, lifecycle: null, mesimabetahaliches: { data: [{ id: 1 }] } } }] }
+			} } } } })
+		);
+		const m = await fetchWorkStatus(cfg, s, { rikmaId: '7', pendmIds: ['99', '98', '97'], openMissionIds: ['6'] }, f as never);
+		expect(Object.fromEntries(m)).toEqual({
+			'pendm:99': { state: 'proposed', openMissionId: null },
+			'pendm:98': { state: 'open', openMissionId: '5' },
+			'pendm:97': { state: 'notApproved', openMissionId: null },
+			'openMission:6': { state: 'taken', openMissionId: '6' }
+		});
+		const [url, init] = f.mock.calls[0] as unknown as [string, RequestInit];
+		expect(url).toBe('https://lev/api/send');
+		expect((init.headers as Record<string, string>).cookie).toBe('jwt=tok');
+		expect(JSON.parse(String(init.body))).toEqual({ data: { queId: 'ivoryWorkStatus', arg: { pid: '7', pmIds: ['99', '98', '97'], omIds: ['6'] } } });
+	});
+
+	it('asks nothing when there is nothing to ask, and fails loudly on an empty answer', async () => {
+		const f = vi.fn();
+		expect((await fetchWorkStatus(cfg, s, { rikmaId: '7', pendmIds: [], openMissionIds: [] }, f as never)).size).toBe(0);
+		expect(f).not.toHaveBeenCalled();
+		await expect(fetchWorkStatus(cfg, s, { rikmaId: '7', pendmIds: ['1'], openMissionIds: [] }, (async () => res(200, { data: { project: { data: null } } })) as never)).rejects.toMatchObject({ code: 'levUnavailable' });
+		await expect(fetchWorkStatus(cfg, s, { rikmaId: '7', pendmIds: ['1'], openMissionIds: [] }, (async () => res(403)) as never)).rejects.toMatchObject({ code: 'levForbidden' });
+	});
+
+	it('links a waiting proposal to its vote page, anything else to the rikma', () => {
+		const l = { rikmaId: '7', externalType: 'pendm', externalId: '99' };
+		expect(workUrl(cfg, { ...l, status: 'proposed' })).toBe('https://lev/moach/7/votes/pendm/99');
+		expect(workUrl(cfg, { ...l, status: 'open' })).toBe('https://lev/moach/7');
+		expect(workUrl(cfg, { rikmaId: '7', externalType: 'process', externalId: '5', status: null })).toBe('https://lev/moach/7');
 	});
 });

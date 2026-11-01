@@ -239,11 +239,19 @@
 		"noRikmas": "You are not a member of any 1lev1 rikma.",
 		"links": "Led to rikma work",
 		"missionMade": "Mission",
-		"missionProposed": "Mission proposal, awaiting the rikma's consent",
 		"processMade": "Process",
 		"by": "by {{name}}",
 		"open": "Open the rikma in 1lev1",
 		"done": "Opened in the rikma.",
-		"backLink": "The full discussion in Ivory Tower"
+		"backLink": "The full discussion in Ivory Tower",
+		"state": {
+			"proposed": "Awaiting the rikma's consent",
+			"open": "Approved, the mission is open",
+			"taken": "Taken, in progress",
+			"notApproved": "The proposal closed without becoming a mission",
+			"removed": "Removed from the rikma"
+		},
+		"asOf": "As of {{when}}",
+		"openVote": "Open the proposal in 1lev1"
 	}
 }

@@ -3,7 +3,8 @@ import type { Actions, PageServerLoad } from './$types';
 import { getDb } from '$lib/server/db';
 import { bridgeEnabled, myRikmas, readableSpace, writableSpace } from '$lib/server/access';
 import { levConfig } from '$lib/server/levAuth';
-import { describeForRikma, openMission, requireMembership, rikmaUrl, startProcess } from '$lib/server/levBridge';
+import { describeForRikma, openMission, requireMembership, startProcess, workUrl } from '$lib/server/levBridge';
+import { refreshWorkStatus } from '$lib/server/workSync';
 import { translator } from '$lib/i18n';
 import * as repo from '$lib/server/repo';
 import { attempt, requireUser, str } from '$lib/server/session';
@@ -81,10 +82,18 @@ export const load: PageServerLoad = async ({ params, parent, url, locals }) => {
 	const view = url.searchParams.get('view') === 'tree' ? 'tree' : 'node';
 	// The rikma bridge: what this node already led to, and where it could lead.
 	const cfg = levConfig();
-	const links = (await repo.listRikmaLinks(db, node.id)).map((l) => ({ ...l, url: cfg ? rikmaUrl(cfg, l.rikmaId) : null }));
+	// A member of the rikma asks 1lev1 where the work stands (as themselves); everyone
+	// else sees the last answer and when it was given.
+	const readerRikmas = await myRikmas(locals);
+	const links = (
+		await refreshWorkStatus(db, await repo.listRikmaLinks(db, node.id), {
+			session: locals.lev,
+			rikmaIds: readerRikmas.map((r) => r.id)
+		})
+	).map((l) => ({ ...l, url: cfg ? workUrl(cfg, l) : null }));
 	const bridge = {
 		enabled: bridgeEnabled() && !!locals.lev && canWrite && node.kind !== 'document',
-		rikmas: node.kind !== 'document' ? await myRikmas(locals) : [],
+		rikmas: node.kind !== 'document' ? readerRikmas : [],
 		defaultRikma: space.ownerRikmaId
 	};
 
@@ -235,7 +244,13 @@ export const actions: Actions = {
 				externalId: made.externalId,
 				missionId: 'missionId' in made ? (made.missionId as string | null) : null,
 				title: name,
-				userId
+				userId,
+				// What 1lev1 just made: a proposal waits for consent; a solo rikma's open mission is open.
+				status:
+					made.externalType === 'pendm' ? 'proposed'
+					: made.externalType === 'openMission' ? 'open'
+					: made.externalType === 'mesimabetahalich' ? 'taken'
+					: null
 			});
 		});
 		return r.ok ? { done: 'rikma' } : r.failure;

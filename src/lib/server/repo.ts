@@ -538,6 +538,10 @@ export interface RikmaLink {
 	title: string;
 	authorName: string;
 	createdAt: string;
+	/** As 1lev1 last said (see `$lib/model/work`); null for a process. */
+	status: string | null;
+	statusAt: string | null;
+	openMissionId: string | null;
 }
 
 /** Record work a node led to in a rikma — after 1lev1 accepted it, never before. */
@@ -553,13 +557,18 @@ export async function addRikmaLink(
 		missionId?: string | null;
 		title: string;
 		userId: string;
+		/** What 1lev1 made it as, at creation (a pendm is `proposed`, an open mission `open`). */
+		status?: string | null;
 	}
 ): Promise<string> {
 	await nodeKind(db, p.spaceId, p.nodeId);
 	const [row] = await db.query<{ id: string }>(
-		`insert into rikma_link (space_id, node_id, rikma_id, rikma_name, kind, external_type, external_id, mission_id, title, created_by)
-		 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning id`,
-		[p.spaceId, p.nodeId, p.rikma.id, p.rikma.name, p.kind, p.externalType, p.externalId, p.missionId ?? null, p.title, p.userId]
+		`insert into rikma_link (space_id, node_id, rikma_id, rikma_name, kind, external_type, external_id, mission_id, title, created_by,
+		                         status, status_at, open_mission_id)
+		 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, case when $11::text is null then null else now() end,
+		         case when $6 = 'openMission' then $7 end)
+		 returning id`,
+		[p.spaceId, p.nodeId, p.rikma.id, p.rikma.name, p.kind, p.externalType, p.externalId, p.missionId ?? null, p.title, p.userId, p.status ?? null]
 	);
 	return row.id;
 }
@@ -568,10 +577,21 @@ export async function listRikmaLinks(db: Db, nodeId: string): Promise<RikmaLink[
 	return db.query<RikmaLink>(
 		`select l.id, l.rikma_id as "rikmaId", l.rikma_name as "rikmaName", l.kind, l.external_type as "externalType",
 		        l.external_id as "externalId", l.mission_id as "missionId", l.title, u.name as "authorName",
-		        l.created_at as "createdAt"
+		        l.created_at as "createdAt", l.status, l.status_at as "statusAt", l.open_mission_id as "openMissionId"
 		   from rikma_link l join app_user u on u.id = l.created_by
 		  where l.node_id = $1 order by l.created_at desc`,
 		[nodeId]
+	);
+}
+
+/** Record what 1lev1 said about a link's work just now. */
+export async function setRikmaLinkStatus(
+	db: Db,
+	p: { id: string; status: string; openMissionId: string | null }
+): Promise<void> {
+	await db.query(
+		`update rikma_link set status = $2, status_at = now(), open_mission_id = coalesce($3, open_mission_id) where id = $1`,
+		[p.id, p.status, p.openMissionId]
 	);
 }
 

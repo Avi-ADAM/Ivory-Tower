@@ -15,6 +15,7 @@
 import { DomainError } from './repo';
 import type { LevConfig } from './levAuth';
 import { escapeHtml } from '$lib/text/markdown';
+import { openMissionState, pendmState, type OpenMissionRow, type WorkState } from '$lib/model/work';
 
 export interface Rikma {
 	id: string;
@@ -132,7 +133,66 @@ export async function startProcess(
 	return { externalId: String(data.processId), externalType: 'process' };
 }
 
+type OmAttrs = { archived?: boolean | null; lifecycle?: string | null; mesimabetahaliches?: { data?: unknown[] } };
+const omRow = (id: string | number, a: OmAttrs | undefined): OpenMissionRow => ({
+	id: String(id),
+	archived: a?.archived ?? null,
+	lifecycle: a?.lifecycle ?? null,
+	startedWork: (a?.mesimabetahaliches?.data?.length ?? 0) > 0
+});
+
+export interface WorkStatus {
+	state: WorkState;
+	openMissionId: string | null;
+}
+
+/**
+ * Where the rikma's work stands — the pendms and open missions Ivory Tower
+ * recorded — asked as the member through the members-only `ivoryWorkStatus`
+ * qid. Keyed `pendm:<id>` / `openMission:<id>`; an id 1lev1 did not return is
+ * simply absent (unknown), never guessed.
+ */
+export async function fetchWorkStatus(
+	cfg: LevConfig,
+	s: LevSession,
+	p: { rikmaId: string; pendmIds: string[]; openMissionIds: string[] },
+	fetchFn: FetchFn = fetch
+): Promise<Map<string, WorkStatus>> {
+	const out = new Map<string, WorkStatus>();
+	if (p.pendmIds.length === 0 && p.openMissionIds.length === 0) return out;
+	const json = (await call(
+		cfg,
+		s,
+		'/api/send',
+		{ data: { queId: 'ivoryWorkStatus', arg: { pid: p.rikmaId, pmIds: p.pendmIds, omIds: p.openMissionIds } } },
+		fetchFn
+	)) as {
+		data?: { project?: { data?: { attributes?: {
+			pendms?: { data?: { id: string | number; attributes?: { archived?: boolean | null; open_mission?: { data?: { id: string | number; attributes?: OmAttrs } | null } } }[] };
+			open_missions?: { data?: { id: string | number; attributes?: OmAttrs }[] };
+		} } | null } };
+	};
+	const attrs = json?.data?.project?.data?.attributes;
+	if (!attrs) throw new DomainError('levUnavailable');
+	for (const pm of attrs.pendms?.data ?? []) {
+		const om = pm.attributes?.open_mission?.data;
+		out.set(`pendm:${pm.id}`, pendmState({ id: String(pm.id), archived: pm.attributes?.archived ?? null, openMission: om ? omRow(om.id, om.attributes) : null }));
+	}
+	for (const om of attrs.open_missions?.data ?? []) {
+		out.set(`openMission:${om.id}`, { state: openMissionState(omRow(om.id, om.attributes)), openMissionId: String(om.id) });
+	}
+	return out;
+}
+
 /** Where a member sees the rikma in 1lev1. */
 export function rikmaUrl(cfg: LevConfig, rikmaId: string): string {
 	return `${cfg.levUrl}/moach/${encodeURIComponent(rikmaId)}`;
+}
+
+/** The focused vote page of a proposal still waiting for consent; otherwise the rikma. */
+export function workUrl(cfg: LevConfig, l: { rikmaId: string; externalType: string; externalId: string; status: string | null }): string {
+	if (l.externalType === 'pendm' && (l.status === null || l.status === 'proposed')) {
+		return `${cfg.levUrl}/moach/${encodeURIComponent(l.rikmaId)}/votes/pendm/${encodeURIComponent(l.externalId)}`;
+	}
+	return rikmaUrl(cfg, l.rikmaId);
 }

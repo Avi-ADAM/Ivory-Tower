@@ -264,11 +264,17 @@
 				<h3>{t('bridge.links')}</h3>
 				<ul class="plain small">
 					{#each data.links as l (l.id)}
-						<li>
-							<strong>{l.kind === 'process' ? t('bridge.processMade') : l.externalType === 'pendm' ? t('bridge.missionProposed') : t('bridge.missionMade')}:</strong>
-							{l.title}
-							<span class="muted">· {l.rikmaName} · {t('bridge.by', { name: l.authorName })}</span>
-							{#if l.url}<a href={l.url} target="_blank" rel="noopener">{t('bridge.open')} ↗</a>{/if}
+						<li class="wl">
+							<span class="row">
+								<strong>{l.kind === 'process' ? t('bridge.processMade') : t('bridge.missionMade')}:</strong>
+								{#if l.status}<span class="ws ws-{l.status}">{t(`bridge.state.${l.status}`)}</span>{/if}
+							</span>
+							<span>{l.title}</span>
+							<span class="muted">{l.rikmaName} · {t('bridge.by', { name: l.authorName })}</span>
+							{#if l.status && l.statusAt && !data.bridge.rikmas.some((r) => r.id === l.rikmaId)}
+								<span class="muted asof">{t('bridge.asOf', { when: new Date(l.statusAt).toLocaleString(i18n.locale, { dateStyle: 'short', timeStyle: 'short' }) })}</span>
+							{/if}
+							{#if l.url}<a href={l.url} target="_blank" rel="noopener">{l.status === 'proposed' ? t('bridge.openVote') : t('bridge.open')} ↗</a>{/if}
 						</li>
 					{/each}
 				</ul>
@@ -374,7 +380,14 @@
 	q { quotes: '«' '»'; }
 	.ok { color: var(--for); font-weight: 600; }
 	.rikma-links { border-inline-start: 4px solid var(--synthesis); }
-	.rikma-links li + li { margin-block-start: 6px; }
+	.rikma-links li + li { margin-block-start: 10px; padding-block-start: 10px; border-block-start: 1px dashed var(--line); }
+	.wl { display: flex; flex-direction: column; gap: 2px; }
+	.ws { font-size: .72rem; font-family: system-ui, sans-serif; padding: 1px 7px; border-radius: 6px; border: 1px solid var(--line); color: var(--muted); }
+	.ws-proposed { color: var(--warn); border-color: var(--warn); }
+	.ws-open { color: var(--question); border-color: var(--question); }
+	.ws-taken { color: var(--for); border-color: var(--for); }
+	.ws-removed, .ws-notApproved { border-style: dashed; }
+	.asof { font-size: .75rem; }
 	.inq-note { border-inline-start: 3px solid var(--warn); padding-inline-start: 8px; }
 	h2 { font-size: 1.15rem; }
 	h3 { font-size: 1rem; margin: 0; }

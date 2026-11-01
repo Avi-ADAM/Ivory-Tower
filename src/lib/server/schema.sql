@@ -116,3 +116,9 @@ alter table space add constraint space_visibility_check check (visibility in ('p
 alter table space add column if not exists write_policy text not null default 'anyone';
 alter table space drop constraint if exists space_write_policy_check;
 alter table space add constraint space_write_policy_check check (write_policy in ('anyone','members'));
+
+-- v5: where the rikma work stands, as 1lev1 last said (ivoryWorkStatus qid).
+-- A cache, refreshed when a member of that rikma opens the node; never inferred.
+alter table rikma_link add column if not exists status text;
+alter table rikma_link add column if not exists status_at timestamptz;
+alter table rikma_link add column if not exists open_mission_id text;
