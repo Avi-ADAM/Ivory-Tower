@@ -1,0 +1,168 @@
+{
+	"app": {
+		"name": "Ivory Tower",
+		"tagline": "An argument map for inquiry that branches",
+		"intro": "Nobody here decides who is right. A question can hold several positions, any position can branch, and any claim can gather arguments for and against, and evidence, as deep as it needs to go. Every path stays open until the people walking it reach its end, and a dead end stays on the map as part of what we know.",
+		"license": "Content in public spaces is published under {{license}}."
+	},
+	"nav": {
+		"home": "Spaces",
+		"signIn": "Sign in",
+		"signOut": "Sign out",
+		"hello": "Hi, {{name}}",
+		"language": "עברית"
+	},
+	"login": {
+		"title": "Sign in",
+		"lead": "In this version you sign in with a display name only, no password. Signing in with a 1lev1 account comes later.",
+		"name": "Display name",
+		"submit": "Sign in"
+	},
+	"spaces": {
+		"title": "Spaces",
+		"empty": "No spaces yet. Open the first one.",
+		"nodes": "{{count}} nodes",
+		"create": "New space",
+		"slug": "Address (lowercase latin letters, digits and dashes)",
+		"spaceTitle": "Space name",
+		"description": "What is being explored here",
+		"submit": "Open the space",
+		"signInToCreate": "Sign in to open a space."
+	},
+	"space": {
+		"questions": "Open questions",
+		"noQuestions": "No questions in this space yet.",
+		"newQuestion": "New question",
+		"recent": "Recently added",
+		"responses": "{{count}} responses"
+	},
+	"kind": {
+		"question": "Question",
+		"position": "Position",
+		"argument": "Argument",
+		"evidence": "Evidence",
+		"synthesis": "Synthesis"
+	},
+	"rel": {
+		"answers": "answers",
+		"refines": "branches from",
+		"supports": "for",
+		"opposes": "against",
+		"premise": "premise of",
+		"synthesizes": "unites",
+		"arisesFrom": "arises from"
+	},
+	"relGroup": {
+		"answers": "Positions",
+		"synthesizes": "Syntheses",
+		"refines": "Branches",
+		"supports": "For",
+		"opposes": "Against",
+		"premise": "Premises",
+		"arisesFrom": "Questions raised here"
+	},
+	"status": {
+		"unchallenged": "Not yet challenged",
+		"contested": "Open objection",
+		"answered": "Objections answered",
+		"unsupported": "No argument for it yet",
+		"explain": "Status comes from the shape of the map, not from a vote: it says where the inquiry stands, not who is right.",
+		"open": "{{count}} open objections",
+		"met": "{{count}} objections answered"
+	},
+	"inquiry": {
+		"label": "Inquiry status of this branch",
+		"none": "Not set",
+		"exploring": "Exploring",
+		"concluded": "Concluded",
+		"deadEnd": "Dead end",
+		"parked": "Parked",
+		"note": "Reason (required unless exploring)",
+		"absorbedInto": "Absorbed into node (id, optional)",
+		"absorbedBadge": "Absorbed into",
+		"save": "Update",
+		"authorOnly": "Only the node's author sets its inquiry status."
+	},
+	"node": {
+		"by": "Written by {{name}}",
+		"attributed": "Attributed to: {{who}}",
+		"rev": "Revision {{rev}}",
+		"history": "Revision history",
+		"edit": "Edit (new revision)",
+		"source": "Source",
+		"respondsTo": "Responds to:",
+		"stale": "The claim changed after this response was written",
+		"treeView": "Full tree view",
+		"listView": "Node view",
+		"repeat": "Also appears elsewhere on the map",
+		"permalink": "Id",
+		"nothingYet": "No responses yet. You can be the first."
+	},
+	"add": {
+		"title": "Add here",
+		"answer": "Position (an answer)",
+		"branch": "Branch (X.x)",
+		"argumentFor": "Argument for",
+		"argumentAgainst": "Argument against",
+		"evidenceFor": "Evidence for",
+		"evidenceAgainst": "Evidence against",
+		"premise": "A premise the argument rests on",
+		"question": "A question this raises",
+		"what": "What are you adding",
+		"claim": "The claim in one sentence",
+		"body": "Details",
+		"source": "Source (link, DOI, citation)",
+		"attributedTo": "Attributed to (optional: Kant, a paper, a school)",
+		"submit": "Add",
+		"signIn": "Sign in to add."
+	},
+	"link": {
+		"title": "Link an existing node here",
+		"lead": "One argument can serve several claims. Paste the id of a node from this space.",
+		"nodeId": "Node id",
+		"rel": "Relation",
+		"submit": "Link"
+	},
+	"insert": {
+		"title": "Insert a step",
+		"lead": "The link \"{{from}}\" → \"{{to}}\" will pass through a new claim. The old link stays in the history.",
+		"lowerRel": "How \"{{from}}\" relates to the new step",
+		"submit": "Insert the step"
+	},
+	"synth": {
+		"title": "Synthesize positions",
+		"lead": "Pick at least two positions the arguments justify uniting. Nothing is deleted: the synthesis points at all of them.",
+		"submit": "Create synthesis"
+	},
+	"stance": {
+		"title": "My stance",
+		"agree": "Agree",
+		"disagree": "Disagree",
+		"unsure": "Unsure",
+		"clear": "Clear",
+		"public": "Publish my stance",
+		"published": "Published stances",
+		"privateNote": "Your stance is private by default. No tally here decides anything."
+	},
+	"edit": {
+		"title": "New revision",
+		"submit": "Save revision",
+		"cancel": "Back"
+	},
+	"error": {
+		"nameRequired": "A name is required.",
+		"titleRequired": "Write the claim.",
+		"titleTooLong": "The claim is too long. One sentence; the rest goes in the details.",
+		"badSlug": "The address may hold only lowercase latin letters, digits and dashes.",
+		"slugTaken": "That address is taken.",
+		"needsParent": "Only a question can stand on its own. Everything else responds to something.",
+		"badLink": "That relation does not fit these kinds of nodes.",
+		"notFound": "Node not found in this space.",
+		"authorOnly": "Only the node's author can do that. You can respond with an argument or open a branch.",
+		"selfLink": "A node cannot point at itself.",
+		"alreadyLinked": "That link already exists.",
+		"noteRequired": "A reason is required.",
+		"synthesisNeedsTwo": "A synthesis needs at least two positions.",
+		"signIn": "Sign in first."
+	}
+}

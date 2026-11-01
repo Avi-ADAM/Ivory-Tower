@@ -1,0 +1,34 @@
+# CLAUDE.md
+
+Ivory Tower (מגדל השן): a branching argument map. SvelteKit 2 + Svelte 5, Node 22,
+Postgres via PGlite (dev/tests) or `pg` (DATABASE_URL). Sister site of 1lev1.
+
+| Command | |
+|---|---|
+| `npm run dev` | dev server |
+| `npm test` | vitest (pure model + repo against in-memory PGlite) |
+| `npm run check` | svelte-check: the typecheck gate |
+| `npm run build` | adapter-node build |
+
+## Principles: do not erode these
+
+- **Nothing is decided by a vote.** Stances are personal and private by default;
+  never add a tally that marks a claim true/false or hides a branch.
+- **Nothing is deleted or overwritten.** Edits are new `node_rev` rows; inserting a
+  step supersedes an edge (`superseded_by`); a synthesis points at what it unites.
+- **Only the author revises a node.** Everyone else responds with a node of their own.
+- **Edges point child → parent** (the responder → what it responds to). Allowed
+  (kind, rel, kind) triples live only in `src/lib/model/rules.ts`.
+- **Structural status** (`src/lib/model/status.ts`) is grounded labelling over
+  `opposes`; supports never cancel an objection; cycles stay undecided (standing).
+- This is the *opposite* of 1lev1's "silence is consent": never auto-resolve anything here.
+
+## Conventions
+
+- All UI text through `useI18n().t('ns.key', { count })` with `{{count}}` in
+  `src/lib/i18n/{he,en}.json`; keep both files key-identical.
+- All DB access through `src/lib/server/repo.ts`; refusals throw `DomainError(code)`
+  where `code` is a key under `error.` in the dictionaries.
+- Auth: with `STRAPI_URL` set, the session is 1lev1's shared `.1lev1.com` `jwt`
+  cookie (see `src/lib/server/levAuth.ts`); otherwise dev display-name login.
+- Data model and roadmap: `docs/MODEL.md`.

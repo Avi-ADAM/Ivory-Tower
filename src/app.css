@@ -1,0 +1,72 @@
+:root {
+	--bg: #f7f4ee;
+	--surface: #fffdf8;
+	--ink: #24201a;
+	--muted: #6d6556;
+	--line: #e2dacb;
+	--accent: #7a5c1e;
+	--accent-ink: #fff;
+	--question: #3b5b92;
+	--position: #7a5c1e;
+	--argument: #4f6b4a;
+	--evidence: #6b4f7a;
+	--synthesis: #2f7a78;
+	--for: #2f6b3a;
+	--against: #a33a2c;
+	--warn: #a86a00;
+	--radius: 10px;
+	color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #1a1814;
+		--surface: #23201b;
+		--ink: #ece6da;
+		--muted: #a99f8c;
+		--line: #3a352c;
+		--accent: #d6b46a;
+		--accent-ink: #1a1814;
+		--question: #8fb0e8;
+		--position: #d6b46a;
+		--argument: #9cc293;
+		--evidence: #c3a3d6;
+		--synthesis: #7fd0cd;
+		--for: #8fd19b;
+		--against: #f08f80;
+		--warn: #f0b860;
+		color-scheme: dark;
+	}
+}
+* { box-sizing: border-box; }
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--ink);
+	font: 16px/1.6 'Frank Ruhl Libre', 'Noto Serif Hebrew', Georgia, serif;
+}
+a { color: inherit; }
+h1, h2, h3 { line-height: 1.25; margin: 0 0 .5em; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 16px; }
+.muted { color: var(--muted); }
+.small { font-size: .875rem; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+.stack > * + * { margin-block-start: 12px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+label { display: block; font-size: .9rem; color: var(--muted); margin-block-end: 4px; }
+input[type='text'], input:not([type]), textarea, select {
+	width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+	background: var(--bg); color: var(--ink); font: inherit;
+}
+textarea { min-height: 90px; resize: vertical; }
+button, .btn {
+	font: inherit; cursor: pointer; border-radius: 8px; padding: 7px 14px;
+	border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); text-decoration: none;
+	display: inline-block;
+}
+button.ghost, .btn.ghost { background: transparent; color: var(--accent); }
+button.chip { padding: 3px 10px; font-size: .875rem; }
+button.chip[aria-pressed='true'] { background: var(--accent); color: var(--accent-ink); }
+button.chip[aria-pressed='false'] { background: transparent; color: var(--accent); }
+.error { color: var(--against); font-weight: 600; }
+details > summary { cursor: pointer; }
+pre.body { white-space: pre-wrap; font: inherit; margin: 0; }
