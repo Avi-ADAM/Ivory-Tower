@@ -62,13 +62,33 @@ export async function migrate(db: Db): Promise<void> {
 
 let shared: Promise<Db> | null = null;
 
+/**
+ * True when there is no real database behind the site: a serverless platform
+ * (Vercel) without DATABASE_URL. Its filesystem is read-only except /tmp, and
+ * /tmp does not outlive the instance — so the embedded database there is a
+ * demo whose data disappears, and the layout says so on every page.
+ */
+export function isEphemeralDb(env: Record<string, string | undefined> = process.env): boolean {
+	return !env.DATABASE_URL && !!env.VERCEL;
+}
+
+function pgliteDir(env: Record<string, string | undefined> = process.env): string {
+	if (env.DATA_DIR) return env.DATA_DIR;
+	return isEphemeralDb(env) ? '/tmp/ivory-tower-pglite' : './data/pglite';
+}
+
 /** The process-wide database, created and migrated on first use. */
 export function getDb(): Promise<Db> {
 	shared ??= (async () => {
 		const url = process.env.DATABASE_URL;
-		const db = url ? await createPostgresDb(url) : await createPgliteDb(process.env.DATA_DIR || './data/pglite');
+		if (!url && isEphemeralDb()) {
+			console.warn('[db] DATABASE_URL is not set on Vercel: running on a temporary database in /tmp — data will be lost.');
+		}
+		const db = url ? await createPostgresDb(url) : await createPgliteDb(pgliteDir());
 		await migrate(db);
 		return db;
 	})();
+	// A failed start must not poison every later request of this instance.
+	shared.catch(() => (shared = null));
 	return shared;
 }

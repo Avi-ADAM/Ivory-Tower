@@ -3,7 +3,8 @@
 		"name": "Ivory Tower",
 		"tagline": "An argument map for inquiry that branches",
 		"intro": "Nobody here decides who is right. A question can hold several positions, any position can branch, and any claim can gather arguments for and against, and evidence, as deep as it needs to go. Every path stays open until the people walking it reach its end, and a dead end stays on the map as part of what we know.",
-		"license": "Content in public spaces is published under {{license}}."
+		"license": "Content in public spaces is published under {{license}}.",
+		"ephemeral": "Demo mode: this site has no database connected yet (DATABASE_URL), so everything written here will be lost."
 	},
 	"nav": {
 		"home": "Spaces",

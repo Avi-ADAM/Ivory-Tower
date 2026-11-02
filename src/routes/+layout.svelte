@@ -37,6 +37,10 @@
 	</div>
 </header>
 
+{#if data.ephemeral}
+	<div class="demo" role="status">{t('app.ephemeral')}</div>
+{/if}
+
 <main class="wrap">
 	{@render children()}
 </main>
@@ -50,5 +54,10 @@
 	.bar { justify-content: space-between; padding-block: 10px; }
 	.brand { display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 1.25rem; font-weight: 700; }
 	.foot { padding-block: 32px; }
+	.demo {
+		max-width: 980px; margin: -12px auto 20px; padding: 8px 16px; border-radius: 8px;
+		background: color-mix(in srgb, var(--warn) 14%, transparent); border: 1px solid var(--warn);
+		font-size: .9rem; font-family: system-ui, sans-serif;
+	}
 	a.chip { padding: 3px 10px; font-size: .875rem; }
 </style>

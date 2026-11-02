@@ -68,6 +68,16 @@ npm run build && node build
 בפרודקשן מגדירים `DATABASE_URL` ל-Postgres אמיתי. אותו SQL רץ בשניהם, והסכמה
 (`src/lib/server/schema.sql`) רצה בעלייה ובטוח להריץ אותה שוב.
 
+## פריסה
+
+- **Vercel:** ה-adapter נבחר אוטומטית, `adapter-vercel` כש-`VERCEL=1` (Vercel מגדיר
+  אותו בבנייה). צריך להגדיר בפרויקט `DATABASE_URL` ל-Postgres (למשל Neon, Supabase
+  או Vercel Postgres). בלעדיו האתר רץ **במצב הדגמה**: מסד זמני ב-`/tmp` שנמחק,
+  עם פס אזהרה בכל עמוד.
+- **Docker / שרת:** `npm run build && node build` (`adapter-node`). בלי
+  `DATABASE_URL` הנתונים נשמרים ב-PGlite ב-`DATA_DIR`.
+- `ADAPTER=node|vercel` כופה adapter מסוים.
+
 ## התחברות: אותה התחברות של 1lev1
 
 האתר יושב על תת-דומיין של `1lev1.com`, ולכן הדפדפן כבר שולח אליו את העוגייה `jwt`
