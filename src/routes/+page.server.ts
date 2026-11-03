@@ -7,12 +7,16 @@ import { bridgeEnabled, myRikmas } from '$lib/server/access';
 import { requireMembership } from '$lib/server/levBridge';
 import { levConfig } from '$lib/server/levAuth';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	const rikmas = await myRikmas(locals);
+	// 1lev1's moach links here with ?rikma=<id> to open a space for that rikma;
+	// it is preselected only when the reader is actually its member.
+	const asked = url.searchParams.get('rikma');
 	return {
 		spaces: await listSpaces(await getDb(), rikmas.map((r) => r.id)),
 		rikmas,
-		bridge: bridgeEnabled()
+		bridge: bridgeEnabled(),
+		preselect: rikmas.some((r) => r.id === asked) ? asked : ''
 	};
 };
 

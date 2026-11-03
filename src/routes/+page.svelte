@@ -3,7 +3,9 @@
 	let { data, form } = $props();
 	const i18n = useI18n();
 	const t = (k: string, p?: Record<string, string | number>) => i18n.t(k, p);
-	let rikma = $state('');
+	// 1lev1's moach opens this with ?rikma=<id>; the server checked membership.
+	// svelte-ignore state_referenced_locally
+	let rikma = $state(data.preselect);
 	let visibility = $state('public');
 </script>
 
@@ -29,7 +31,7 @@
 		{/each}
 	</section>
 
-	<section class="card stack">
+	<section class="card stack" id="new">
 		<h2>{t('spaces.create')}</h2>
 		{#if data.user}
 			<form method="POST" action="?/createSpace" class="stack">
