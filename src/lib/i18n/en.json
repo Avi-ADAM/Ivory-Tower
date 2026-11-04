@@ -254,5 +254,17 @@
 		},
 		"asOf": "As of {{when}}",
 		"openVote": "Open the proposal in 1lev1"
+	},
+	"tree": {
+		"expandAll": "Expand all",
+		"collapseAll": "Collapse all",
+		"zoomIn": "Zoom in",
+		"zoomOut": "Zoom out",
+		"zoomReset": "Actual size",
+		"show": "Show {{count}} responses",
+		"hide": "Collapse responses",
+		"hint": "Parallel branches sit side by side; a wide tree scrolls sideways.",
+		"label": "Argument tree",
+		"fit": "Fit to width"
 	}
 }

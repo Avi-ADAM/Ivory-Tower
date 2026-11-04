@@ -102,10 +102,10 @@
 		currentUserId={data.user?.id ?? null}
 	/>
 {:else}
-<div class="layout">
+<div class="layout" class:tree-mode={data.view === 'tree'}>
 	<section class="stack">
 		{#if data.view === 'tree' && data.tree}
-			<div class="card"><TreeView item={data.tree} statuses={data.statuses} {base} /></div>
+			<div class="bleed"><TreeView item={data.tree} statuses={data.statuses} {base} /></div>
 		{:else}
 			{#if data.groups.length === 0}<p class="muted">{t('node.nothingYet')}</p>{/if}
 			{#each data.groups as g (g.rel)}
@@ -357,6 +357,9 @@
 	.meta code { font-size: .75rem; }
 	.layout { display: grid; gap: 24px; grid-template-columns: 1fr; }
 	@media (min-width: 860px) { .layout { grid-template-columns: 3fr 2fr; } }
+	.layout.tree-mode { grid-template-columns: 1fr; }
+	/* the tree breaks out of the reading column: parallel branches need the width */
+	.bleed { --w: min(100vw - 48px, 1680px); width: var(--w); margin-inline: calc((100% - var(--w)) / 2); }
 	.group { display: flex; flex-direction: column; gap: 8px; margin-block-end: 18px; }
 	.gh { font-size: 1.05rem; margin: 0; }
 	.g-supports .gh { color: var(--for); }
